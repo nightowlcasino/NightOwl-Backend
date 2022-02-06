@@ -16,3 +16,8 @@ npm i
 ```bash
 node index.js
 ```
+
+## Test API
+```bash
+curl http://localhost:8080/api/v1/leaderboard
+```
