@@ -1,20 +1,24 @@
 # casino-backend
 
-## Install node (Mac OS X)
+## Install nvm (Mac OS X - Node Version Manager)
 
 ```bash
-brew install node@v17
+brew install nvm
+```
+
+## Install node lts (long-term support) version
+```bash
+nvm install --lts
 ```
 
 ## Install dependencies
-
 ```bash
 npm i
 ```
 
 ## start nodejs backend server
 ```bash
-node index.js
+npm run start
 ```
 
 ## Test API

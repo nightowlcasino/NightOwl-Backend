@@ -1,7 +1,7 @@
-let leaderboard
+let leaderboard: any
 
 export default class LeaderboardDAO {
-    static async injectDB(conn) {
+    static async injectDB(conn: any) {
         if (leaderboard) {
             return
         }
