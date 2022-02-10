@@ -26,7 +26,7 @@ MongoClient.connect(
         useNewUrlParser: true
     })
     .catch((err: { stack: any; }) => {
-        console.error(err.stack)
+        console.error("Error while connecting to mongodb - " + err.stack)
         process.exit(1)
     })
     .then(async (client: any) => {
