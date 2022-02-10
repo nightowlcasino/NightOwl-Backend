@@ -21,7 +21,7 @@
 </p>
 
 <!-- logo -->
-<p align="center" style='padding: 30px;'>
+<p align="center">
   <img src="public/logo.png" alt="Logo" width="400"/>
 </p>
 
@@ -49,22 +49,32 @@
 <!-- ABOUT -->
 ## About
 
-A little bit about what the backends job is
+The main job of the backend will be to: 
+
+- interact with our ERG blockchain smart contracts to place user bet(s)
+- interface with the ergo explorer API to collect & aggregate all TXs with our smart contracts
+- store metrics from application usage & performance as well as metrics from our smart contracts to help quickly detect any issues.
+- interface with external dApps & blockchains (i.e. Oracle pools, ADAHandle, etc)
 
 ### Built With
 
+* [NodeJS](https://nodejs.org/en/)
 * [Express](https://expressjs.com)
 * [Typescript](https://www.typescriptlang.org)
 * [MongoDB](https://www.mongodb.com)
 
 ### Why Typescript?
 
+We decided to go with Typescript as our backend language for a few reasons. One, it appears it is becoming more popular which results in better documentation and an active community. Next, it will help us detect bugs early on and also help diagnose them in the field. I don't think anyone enjoys seeing an error stack that is not only massive but cryptic as well. Lastly, we have found that it has a better developer experience.
+
 ### Why MongoDB?
+
+Although this application does not require any DB at all, we wanted to incorporate one to improve the user experience as well as track the performance and usage of the app. Nothing will be stored in the DB that is sensitive or compromising to any of our users. We decided to use MongoDB because of it's ability for rapid development and prototyping. It also has a sufficient redundancy model when you use clustering. 
 
 <!-- INSTALLATION -->
 ## Installation
 
-### Install nvm (Mac OS X - Node Version Manager)
+### Install nvm (Node Version Manager w/ Mac OS X)
 
 ```bash
 brew install nvm
