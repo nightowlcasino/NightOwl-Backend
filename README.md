@@ -21,8 +21,8 @@
 </p>
 
 <!-- logo -->
-<p align="center">
-  <img src="public/logo.png" alt="Logo"/>
+<p align="center" style='padding: 30px;'>
+  <img src="public/logo.png" alt="Logo" width="400"/>
 </p>
 
 # NightOwl-Backend
@@ -48,6 +48,18 @@
   
 <!-- ABOUT -->
 ## About
+
+A little bit about what the backends job is
+
+### Built With
+
+* [Express](https://expressjs.com)
+* [Typescript](https://www.typescriptlang.org)
+* [MongoDB](https://www.mongodb.com)
+
+### Why Typescript?
+
+### Why MongoDB?
 
 <!-- INSTALLATION -->
 ## Installation
@@ -84,8 +96,27 @@ curl http://localhost:8080/api/v1/leaderboard
 <!-- ROADMAP -->
 ## Roadmap
 
+### 2022
+
+#### Q1
+- [ ] Read and store on-chain data from coin-flip smart contract
+- [ ] Place bets using browser connected wallet to coin-flip smart contract
+- [ ] Figure out scalable DB Schemas for representing on-chain data for each casino game type
+- [ ] Deploy dev environments to Virtual Private Servers
+
+#### Q2
+- [ ] Connect front-end with back-end applications
+- [ ] Try to integrate with ADAHandle because of the recent partnership between ADAHandle and ERG
+- [ ] Begin work on more complicated casino games (i.e. P2P betting, backjack)
+
+Longer term goals are still being figured out
+
 <!-- ERGOHACK3 -->
 ## Ergo Hack III Goals
+
+- Integrate with ErgoMixer API to anonymize bets
+- Investigate Oracle pools that can collect & aggregate betting odds from different casinos
+- PoC a way to connect to Oracle pools to retreive, store, and display data
 
 <!-- LICENSE -->
 ## License
@@ -96,3 +127,5 @@ MIT License, see [LICENSE](https://github.com/nightowlcasino/NightOwl-Backend/bl
 ## Acknowledgments
 
 This repo structure was based off of the [ergo-js-template repo](https://github.com/anon-real/ergo-js-template)
+
+<p align="right">(<a href="#top">back to top</a>)</p>
