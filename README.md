@@ -103,7 +103,7 @@ npm run start
 curl http://localhost:8080/api/v1/leaderboard
 ```
 
-<!-- ROADMAP -->
+<!-- ROADMAP (work in progress)  -->
 ## Roadmap
 
 ### 2022
@@ -115,7 +115,6 @@ curl http://localhost:8080/api/v1/leaderboard
 - [ ] Deploy dev environments to Virtual Private Servers
 
 #### Q2
-- [ ] Connect front-end with back-end applications
 - [ ] Try to integrate with ADAHandle because of the recent partnership between ADAHandle and ERG
 - [ ] Begin work on more complicated casino games (i.e. P2P betting, backjack)
 
