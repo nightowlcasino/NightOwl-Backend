@@ -103,8 +103,8 @@ npm run start
 curl http://localhost:8080/api/v1/leaderboard
 ```
 
-<!-- ROADMAP (work in progress)  -->
-## Roadmap
+<!-- ROADMAP -->
+## Roadmap (work in progress)
 
 ### 2022
 
