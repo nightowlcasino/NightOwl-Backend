@@ -93,6 +93,7 @@ export default class ErgoPayController {
 
         console.log(`addr: ${addr}`)
         console.log(`bet: ${bet}`)
+        console.log(`bet: ${amountToSend}`)
         
         if (addr != "") {
             let _boxes = await explorerService.getUnspentBoxes(new Array(addr))
