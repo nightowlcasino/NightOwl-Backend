@@ -72,8 +72,11 @@ export default class ErgoPayController {
 
         // Get address from URI GET request
         let addr = req.params.addr || ""
+        let bet = req.params.bet || ""
+        console.log(`addr: ${addr}`)
+        console.log(`bet: ${bet}`)
+        let amountToSend: BigInt = BigInt(bet)
         let response = new ErgoPayResponse()
-        let amountToSend: BigInt
         let amount = BigInt(1000)
         
 
@@ -85,26 +88,26 @@ export default class ErgoPayController {
             const boxData = _boxes[0]?.data || 0
             const currentHeight = boxData[0].creationHeight
             const recipient = Address.from_mainnet_str(addr)
-            let sender = Address.from_mainnet_str(addr)  // We are sending ERG to ourselves
+            const sender = Address.from_mainnet_str(addr)  // We are sending ERG to ourselves
             const feeAmt = TxBuilder.SUGGESTED_TX_FEE();
             const changeAmt = BoxValue.SAFE_USER_MIN();
             const myInputs: string[] = [];
             
-            const unsignedTx: any = this.paymentTransaction(
+            /*const unsignedTx: any = this.paymentTransaction(
                                recipient,
                                sender,
                                String(amountToSend),
                                feeAmt,
                                changeAmt,
                                myInputs,
-                               currentHeight);
+                               currentHeight);*/
 
 
             
             /*response.reducedTx = Buffer.from(unsignedTx.to_json, 'binary').toString('base64');
-            response.address = addr
-            response.message = "Here is your 1 ERG round trip."
-            response.messageSeverity = Severity.INFORMATION*/
+            response.address = addr*/
+            response.message = `Your bet of ${bet} has been placed`
+            response.messageSeverity = Severity.INFORMATION
         }
         
         res.status(200).json(response);
