@@ -1,5 +1,7 @@
 import { Request, Response } from "express"
 import { ErgoPayReply } from "../ergo/ergopayreply"
+import BigNumber from "bignumber.js";
+import { toBigNumber } from "../utils/bigNumbers";
 import { Severity } from "../ergo/ergopayresponse"
 import ErgoPayResponse from "../ergo/ergopayresponse"
 import {
@@ -73,22 +75,33 @@ export default class ErgoPayController {
         // Get address from URI GET request
         let addr = req.params.addr || ""
         let bet = req.params.bet || ""
+        let response = new ErgoPayResponse()
+        let amountToSend: BigNumber
+        let amount = new BigNumber(1000)
+        try {
+            amountToSend = new BigNumber(bet)
+            if (amountToSend.isNaN()) {
+                throw new Error()
+            }
+            amountToSend = amountToSend.multipliedBy(amount).multipliedBy(amount).multipliedBy(amount)  // This equals out to 1 ERG
+        } catch (e) {
+            response.message = `Issue parsing ${bet} value, please use a standard float or int`
+            response.messageSeverity = Severity.ERROR
+            res.status(500).json(response);
+            return
+        }
+
         console.log(`addr: ${addr}`)
         console.log(`bet: ${bet}`)
-        let amountToSend: BigInt = BigInt(bet)
-        let response = new ErgoPayResponse()
-        let amount = BigInt(1000)
         
-
         if (addr != "") {
             let _boxes = await explorerService.getUnspentBoxes(new Array(addr))
 
             // Get currentHeight from first box
-            amountToSend = amount * amount * amount      // This equals out to 1 ERG
             const boxData = _boxes[0]?.data || 0
             const currentHeight = boxData[0].creationHeight
             const recipient = Address.from_mainnet_str(addr)
-            const sender = Address.from_mainnet_str(addr)  // We are sending ERG to ourselves
+            const sender = Address.from_mainnet_str(addr)  // We are sending ERG to ourselves in this example
             const feeAmt = TxBuilder.SUGGESTED_TX_FEE();
             const changeAmt = BoxValue.SAFE_USER_MIN();
             const myInputs: string[] = [];
