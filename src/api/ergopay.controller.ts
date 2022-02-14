@@ -83,7 +83,11 @@ export default class ErgoPayController {
             if (amountToSend.isNaN()) {
                 throw new Error()
             }
-            amountToSend = amountToSend.multipliedBy(amount).multipliedBy(amount).multipliedBy(amount)  // This equals out to 1 ERG
+            // Need to reformat the ERG amount by multiplying by 1000000000
+            // this will remove the decimal if there is one
+            amountToSend = amountToSend.multipliedBy(amount)
+                                       .multipliedBy(amount)
+                                       .multipliedBy(amount)
         } catch (e) {
             response.message = `Issue parsing ${bet} value, please use a standard float or int`
             response.messageSeverity = Severity.ERROR
