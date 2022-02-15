@@ -6,7 +6,7 @@ export enum Severity {
     ERROR = "ERROR"
 }
 
-export default class ErgoPayResponse {
+export class ErgoPayResponse {
     
     constructor(message?: string, messageSeverity?: Severity, address?: string, reducedTx?: string, replyTo?: string) {
         this.message = message

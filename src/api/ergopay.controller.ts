@@ -1,9 +1,7 @@
 import { Request, Response } from "express"
 import { ErgoPayReply } from "../ergo/ergopayreply"
 import BigNumber from "bignumber.js";
-import { toBigNumber } from "../utils/bigNumbers";
-import { Severity } from "../ergo/ergopayresponse"
-import ErgoPayResponse from "../ergo/ergopayresponse"
+import { ErgoPayResponse, Severity } from "../ergo/ergopayresponse"
 import {
     Address,
     BoxId,
