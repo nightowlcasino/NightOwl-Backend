@@ -6,7 +6,6 @@ dnf install https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.r
 dnf update -y
 dnf install bind-utils vim htop certbot python3-certbot-nginx mod_ssl firewalld git net-tools screen npm tar -y
 ```
-react
 
 ## Install nvm
 ```bash
@@ -20,7 +19,7 @@ nvm install --lts
 vim /etc/yum.repos.d/nginx.repo
 ```
 
-### Content to add
+### nginx.repo contents
 ```
 [nginx-stable]
 name=nginx stable repo
