@@ -130,8 +130,3 @@ npm i
 npm run build
 cp -R build/* /usr/share/nginx/html/nightowlcasino/
 ```
-
-# may need to change the context
-```bash
-chcon -R -u system_u -t httpd_sys_content_t /usr/share/nginx/html/
-```
