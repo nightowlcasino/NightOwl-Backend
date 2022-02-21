@@ -223,7 +223,7 @@ export async function createTxOutputs(selectedUtxos: any, sendToAddress: string,
             creationHeight);
     } catch (e) {
         console.log("Error creating paymentBox: ", e);
-        return Error
+        throw e
     }
     for(const i in tokens){
         if(tokenAmountToSend[i] > 0){

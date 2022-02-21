@@ -9,6 +9,10 @@ import {
     createTxOutputs 
 } from '../ergo/ergolibUtils'
 
+import {
+    ErgoBoxCandidates
+} from '../../pkg-nodejs/ergo_lib_wasm'
+
 export default class ErgoPayController {
 
     static async ErgoPayCoinflip(req: Request, res: Response): Promise<void> {
@@ -25,7 +29,7 @@ export default class ErgoPayController {
         } catch (e) {
             response.message = `Issue parsing ${bet} value, please use a standard float or int`
             response.messageSeverity = Severity.ERROR
-            res.status(500).json(response);
+            res.status(200).json(response);
             return
         }
         
@@ -54,10 +58,17 @@ export default class ErgoPayController {
 
             const tokenAmountToSendInt = tokenAmountToSend.map((amountFloat: any, id: any) =>
             Math.round(parseFloat(amountFloat.toString()) * Math.pow(10, parseInt(tokensToSend[id].decimals))));
-            
-            
-            const outputCandidates = await createTxOutputs(selectedUtxos, recipient, sender,
-                .001, feeFloat, tokensToSend, tokenAmountToSendInt);
+
+            let outputCandidates: ErrorConstructor | ErgoBoxCandidates
+            try {
+                outputCandidates = await createTxOutputs(selectedUtxos, recipient, sender,
+                    .001, feeFloat, tokensToSend, tokenAmountToSendInt);
+            } catch (e) {
+                response.message = `Issue building Tx, please try again`
+                response.messageSeverity = Severity.ERROR
+                res.status(200).json(response);
+                return
+            }
 
             const unsignedTransaction = await createUnsignedTransaction(selectedUtxos, outputCandidates);
             const jsonUnsignedTx = JSON.parse(unsignedTransaction.to_json());
