@@ -1,6 +1,6 @@
 import { Request, Response } from "express"
 import { ErgoPayReply } from "../ergo/ergopayreply"
-import { NANOERG_TO_ERG, FEE_VALUE, TOKENID_TEST } from "../constants/ergo"
+import { NANOERG_TO_ERG, FEE_VALUE, MIN_BOX_VALUE, TOKENID_TEST } from "../constants/ergo"
 import { ErgoPayResponse, Severity } from "../ergo/ergopayresponse"
 import {
     createUnsignedTransaction,
@@ -37,7 +37,8 @@ export default class ErgoPayController {
             const recipient = "..." //smart contract address
             const sender = addr  // Comes from ERG mobile wallet
             const feeFloat = parseFloat(String(FEE_VALUE/NANOERG_TO_ERG));
-            const totalAmountToSendFloat = amountToSend + feeFloat;
+            const amountToSendFloat = parseFloat(String(MIN_BOX_VALUE/NANOERG_TO_ERG));
+            const totalAmountToSendFloatERG = amountToSendFloat + feeFloat
             const selectedAddresses = [addr]
             const tokensToSend = [{
                 amount: amountToSend,
@@ -52,7 +53,7 @@ export default class ErgoPayController {
             }]*/
             const tokenAmountToSend = [amountToSend]
             const selectedUtxos = await getUtxosForSelectedInputs(selectedAddresses,
-                                                                  totalAmountToSendFloat,
+                                                                  totalAmountToSendFloatERG,
                                                                   tokensToSend,
                                                                   tokenAmountToSend);
 
@@ -62,7 +63,7 @@ export default class ErgoPayController {
             let outputCandidates: ErrorConstructor | ErgoBoxCandidates
             try {
                 outputCandidates = await createTxOutputs(selectedUtxos, recipient, sender,
-                    .001, feeFloat, tokensToSend, tokenAmountToSendInt);
+                    amountToSendFloat, feeFloat, tokensToSend, tokenAmountToSendInt);
             } catch (e) {
                 response.message = `Issue building Tx, please try again`
                 response.messageSeverity = Severity.ERROR
