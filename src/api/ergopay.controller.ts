@@ -6,18 +6,16 @@ import {
     createUnsignedTransaction,
     getTxReducedB64Safe, 
     getUtxosForSelectedInputs, 
-    createTxOutputs 
+    createTxOutputs
 } from '../ergo/ergolibUtils'
 
-import {
-    ErgoBoxCandidates
-} from '../../pkg-nodejs/ergo_lib_wasm'
+import { ErgoBoxCandidates } from '../../pkg-nodejs/ergo_lib_wasm'
 
 export default class ErgoPayController {
 
     static async ErgoPayCoinflip(req: Request, res: Response): Promise<void> {
-        let addr = req.params.addr || ""
-        let bet = req.params.bet || ""
+        const addr = req.params.addr || ""
+        const bet = req.params.bet || ""
         let response = new ErgoPayResponse()
         let amountToSend: number
         try {

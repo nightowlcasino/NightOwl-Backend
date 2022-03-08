@@ -1,4 +1,4 @@
-import { MAX_NUMBER_OF_UNUSED_ADDRESS_PER_ACCOUNT, NANOERG_TO_ERG } from '../constants/ergo';
+import { MAX_NUMBER_OF_UNUSED_ADDRESS_PER_ACCOUNT, NANOERG_TO_ERG, TOKENID_FAKE_SIGUSD, TOKENID_TEST } from '../constants/ergo';
 import { addressHasTransactions, currentHeight, unspentBoxesFor } from './explorer';
 import { byteArrayToBase64 } from './serializer';
 import { getLastHeaders } from "./node";
@@ -152,9 +152,15 @@ export async function isValidErgAddress(address: any) {
 // list of tokenId to send
 // list of token amount to send
 export async function getUtxosForSelectedInputs(inputAddressList: any, ergAmount: any, tokens: any, tokensAmountToSend: any) {
-    const utxos = parseUtxos(await Promise.all(inputAddressList.map(async (address: any) => {
-        return await unspentBoxesFor(address);
-    })).then(boxListList => boxListList.flat()));
+    let utxos: any[]
+    try {
+        utxos = parseUtxos(await Promise.all(inputAddressList.map(async (address: any) => {
+            return await unspentBoxesFor(address);
+        })).then(boxListList => boxListList.flat()));
+    } catch (e) {
+        console.log("caught exception from parseUtxos", e)
+        return []
+    }
 
     // Select boxes to meet tokens selected
     var selectedUtxos = [], unSelectedUtxos = utxos, i = 0;
@@ -188,13 +194,20 @@ export async function getUtxosForSelectedInputs(inputAddressList: any, ergAmount
 export function hasEnoughSelectedTokens(utxos: any, requiredTokens: any, requiredTokenAmounts: any) {
     const utxosTokens = getTokenListFromUtxos(utxos);
     const fixedRequiredTokenAmounts = requiredTokenAmounts.map((amount: any, id: any) => Math.round(parseFloat(amount.toString()) * Math.pow(10,requiredTokens[id].decimals)))
+    //console.log("utxosTokens",utxosTokens)
+    //console.log("fixedRequiredTokenAmounts",fixedRequiredTokenAmounts)
+    //console.log("requiredTokens",requiredTokens)
     for (const i in requiredTokens) {
         if (fixedRequiredTokenAmounts[i] > 0) {
+            //console.log("requiredTokens[i].tokenId", requiredTokens[i].tokenId)
+            //console.log("Object.keys(utxosTokens).includes(requiredTokens[i].tokenId)", Object.keys(utxosTokens).includes(requiredTokens[i].tokenId))
             if (!Object.keys(utxosTokens).includes(requiredTokens[i].tokenId)) {
                 //console.log("hasEnoughSelectedTokens 1", Object.keys(utxosTokens), requiredTokens[i].tokenId)
                 return false;
             }
             for (const tokenId of Object.keys(utxosTokens)) {
+                //console.log("utxosTokens[tokenId]", utxosTokens[tokenId])
+                //console.log("fixedRequiredTokenAmounts[i]", fixedRequiredTokenAmounts[i])
                 if (tokenId === requiredTokens[i].tokenId && utxosTokens[tokenId] < fixedRequiredTokenAmounts[i]) {
                     //console.log("hasEnoughSelectedTokens 2", tokenId, requiredTokens[i].tokenId, utxosTokens[tokenId], fixedRequiredTokenAmounts[i]);
                     return false;
