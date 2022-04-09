@@ -1,9 +1,9 @@
 import { MAX_NUMBER_OF_UNUSED_ADDRESS_PER_ACCOUNT, NANOERG_TO_ERG, TOKENID_FAKE_SIGUSD, TOKENID_TEST } from '../constants/ergo';
-import { addressHasTransactions, currentHeight, unspentBoxesFor } from './explorer';
+import { addressHasTransactions, currentHeight, unspentBoxesFor, unspentBoxesForV1 } from './explorer';
 import { byteArrayToBase64 } from './serializer';
 import { getLastHeaders } from "./node";
 import JSONBigInt from 'json-bigint';
-import { getTokenListFromUtxos, getUtxosListValue, parseUtxos } from './utxos';
+import { getTokenListFromUtxos, getUtxosListValue, parseUtxos, parseUtxo } from './utxos';
 import {
     Address,
     BlockHeaders,
@@ -155,7 +155,7 @@ export async function getUtxosForSelectedInputs(inputAddressList: any, ergAmount
     let utxos: any[]
     try {
         utxos = parseUtxos(await Promise.all(inputAddressList.map(async (address: any) => {
-            return await unspentBoxesFor(address);
+            return await unspentBoxesForV1(address);
         })).then(boxListList => boxListList.flat()));
     } catch (e) {
         console.log("caught exception from parseUtxos", e)
@@ -314,4 +314,40 @@ async function getTxReduced(json: any, inputs: any, dataInputs: any): Promise<[s
 
     const ctx = new ErgoStateContext(pre_header, block_headers);
     return [unsignedTx.id().to_str(), ReducedTransaction.from_unsigned_tx(unsignedTx,inputBoxes,inputDataBoxes,ctx)];
+}
+
+export function getBestUtxoSC(utxos: any[], tokenId: string, tokenAmount: number): any {
+    // grab 1 or more utxos from the input utxos that has enough available tokens
+    for (const u in utxos) {
+        const u_parsed = parseUtxo(utxos[u])
+        // check that both SigUSD and OWL tokens are present for SC utxo
+        const tokenIds = u_parsed.assets.map((val: any) => val.tokenId)
+        if (tokenIds.indexOf(TOKENID_TEST) == -1 || 
+            tokenIds.indexOf(TOKENID_FAKE_SIGUSD) == -1) {
+            continue
+        }
+        for (const t in u_parsed.assets) {
+            // check there is enough to swap
+            if (u_parsed.assets[t].tokenId == tokenId &&
+                u_parsed.assets[t].amount >= tokenAmount) {
+                return utxos[u]
+            }
+        }
+    }
+}
+
+export function getBestUtxoSender(utxos: any[], tokenId: string, tokenAmount: number, fees: bigint): any {
+    // grab 1 or more utxos from the input utxos that has enough available tokens
+    for (const u in utxos) {
+        const u_parsed = parseUtxo(utxos[u])
+        // check if there is enough ERG in the box to fulfill the tx fees
+        if (BigInt(u_parsed.value) >= fees) {
+            for (const t in u_parsed.assets) {
+                if (u_parsed.assets[t].tokenId == tokenId &&
+                    u_parsed.assets[t].amount >= tokenAmount) {
+                    return utxos[u]
+                }
+            }
+        }
+    }
 }

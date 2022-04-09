@@ -1,5 +1,6 @@
 import app from "./server"
 import dotenv from "dotenv"
+import logger from "./logger"
 //import LeaderboardDAO from "./dao/leaderboardDAO"
 
 //const MongoClient = require('mongodb').MongoClient;
@@ -38,5 +39,5 @@ const port = process.env.PORT || 8000
 //await startClock()
 
 app.listen(port, () => {
-    console.log(`listening on port ${port}`)
+    logger.info(`listening on port ${port}`)
 })

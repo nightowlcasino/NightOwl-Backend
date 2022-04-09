@@ -55,19 +55,19 @@ export function parseUtxos(utxos: any[], addExtention?: boolean | undefined, mod
     return utxosFixed;
 }
 
-export async function enrichUtxos(utxos: { [x: string]: any; }) {
-    var utxosFixed = [];
+export async function enrichUtxos(utxos: { [x: string]: any; }, addExtension: boolean = false) {
+    let utxosFixed = [];
 
     for (const i in utxos) {
-        var key = "boxId";
+        let key = "boxId";
         if ("id" in utxos[i]) {
             key = "id";
         }
         //console.log("enrichUtxos1", utxos[i][key]);
-        var box = await boxByBoxId(utxos[i][key]);
-        var newAssets = []
-        for (var token of box.assets) {
-            var newToken = { ...token }
+        const box = await boxByBoxId(utxos[i][key]);
+        let newAssets = []
+        for (let token of box.assets) {
+            let newToken = { ...token }
             //console.log("enrichUtxos2", token.tokenId);
             const tokenDesc = await getTokenBoxV1(token.tokenId);
             newToken["name"] = tokenDesc.name;
@@ -91,6 +91,9 @@ export async function enrichUtxos(utxos: { [x: string]: any; }) {
             }
         } catch(e) {
             console.log(e)
+        }
+        if (addExtension && !Object.keys(newBox).includes("extension")) {
+            newBox["extension"] = {};
         }
         utxosFixed.push(newBox);
     }
