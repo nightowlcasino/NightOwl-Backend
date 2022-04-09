@@ -124,10 +124,10 @@ export async function encodeContract(address: any) {
 }
 
 export async function ergoTreeToAddress(ergoTree: any) {
-    console.log("ergoTreeToAddress",ergoTree);
+    //console.log("ergoTreeToAddress",ergoTree);
     const ergoT = ErgoTree.from_base16_bytes(ergoTree);
     const address = Address.recreate_from_ergo_tree(ergoT);
-    return address.to_base58
+    return address.to_base58(NetworkPrefix.Mainnet)
 }
 
 

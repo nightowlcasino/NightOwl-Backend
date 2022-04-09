@@ -3,7 +3,7 @@ import SwapController from "./swap.controller";
 
 const router = express.Router();
 
-router.route("/sigusd/:addr/:amnt").get(SwapController.SwapSigUSD)
-router.route("/owl/:addr/:amnt").get(SwapController.SwapOWL)
+router.route("/sigusd").post(SwapController.SwapSigUSD)
+router.route("/owl").post(SwapController.SwapOWL)
 
 export default router
