@@ -44,7 +44,6 @@ export default class SwapController {
         const profiler = logger.startTimer();
         const uuid = uuidv4()
         const swapOwlLogger = logger.child({ request_id: `${uuid}` });
-        
         swapOwlLogger.info('', {
             url: '/api/v1/swap/sigusd',
             sender_addr: `${req.body.senderAddr}`,
@@ -52,7 +51,7 @@ export default class SwapController {
         });
 
         const recipient = req.body.senderAddr
-        const amountToSend = req.body.amnt
+        const amountToSend: number = req.body.amnt
         const selectedUtxosSender = req.body.utxos
         const totalAmountToSendFloatERG = amountToSendFloat + feeFloat
         const selectedAddressesSC = [TEST_SWAP_CONTRACT_ADDRESS] // smart contract address
@@ -104,13 +103,13 @@ export default class SwapController {
         // calculate final SC token balances
         // OWL tokens needs to be first in the list
         let owlRemainder: number = 0
-        let sigUSDTotal: number = amountToSend
+        let sigUSDTotal: number = 0
         let tokensRemaining: {tokenId: string, amount: string}[] = []
         for (const i in scUtxo.assets) {
             if (scUtxo.assets[i].tokenId == TOKENID_TEST) {
-                owlRemainder = parseInt(scUtxo.assets[i].amount) - amountToSend
+                owlRemainder = parseInt(scUtxo.assets[i].amount) - Number(amountToSend)
             } else if (scUtxo.assets[i].tokenId == TOKENID_FAKE_SIGUSD) {
-                sigUSDTotal += parseInt(scUtxo.assets[i].amount)
+                sigUSDTotal = Number(amountToSend) + parseInt(scUtxo.assets[i].amount)
             } else {
                 tokensRemaining.push({
                     tokenId: scUtxo.assets[i].tokenId,
@@ -217,7 +216,7 @@ export default class SwapController {
         });
 
         const recipient = req.body.senderAddr
-        const amountToSend = req.body.amnt
+        const amountToSend: number = req.body.amnt
         const selectedUtxosSender = req.body.utxos
         const totalAmountToSendFloatERG = amountToSendFloat + feeFloat
         const selectedAddressesSC = [TEST_SWAP_CONTRACT_ADDRESS] // smart contract address
@@ -242,6 +241,17 @@ export default class SwapController {
 
         let selectedUtxos: any[] = []
         const scUtxo = getBestUtxoSC(selectedUtxosSC,TOKENID_FAKE_SIGUSD,amountToSend)
+        if (scUtxo === undefined) {
+            profiler.done({
+                hostname: `${swapOwlLogger.defaultMeta.hostname}`,
+                request_id: `${uuid}`,
+                tx_id: ``,
+                message: "Couldn't find a smart contract utxo",
+                code: 500
+            })
+            res.status(500).json()
+            return
+        }
         // SAFEW REQ
         //const enrichedUtxo = await enrichUtxos([scUtxo], true)
         const senderUtxo = getBestUtxoSender(selectedUtxosSender,TOKENID_TEST,amountToSend,(amountNano+feeNano))
@@ -269,13 +279,13 @@ export default class SwapController {
         // calculate final SC token balances
         // OWL tokens needs to be first in the list
         let sigUSDRemainder: number = 0
-        let owlTotal: number = amountToSend
+        let owlTotal: number = 0
         let tokensRemaining: {tokenId: string, amount: string}[] = []
         for (const i in scUtxo.assets) {
             if (scUtxo.assets[i].tokenId == TOKENID_TEST) {
-                owlTotal += parseInt(scUtxo.assets[i].amount)
+                owlTotal = Number(amountToSend) + parseInt(scUtxo.assets[i].amount)
             } else if (scUtxo.assets[i].tokenId == TOKENID_FAKE_SIGUSD) {
-                sigUSDRemainder = parseInt(scUtxo.assets[i].amount) - amountToSend
+                sigUSDRemainder = parseInt(scUtxo.assets[i].amount) - Number(amountToSend)
             } else {
                 tokensRemaining.push({
                     tokenId: scUtxo.assets[i].tokenId,
