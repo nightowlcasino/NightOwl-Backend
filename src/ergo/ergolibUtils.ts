@@ -329,7 +329,7 @@ export function getBestUtxoSC(utxos: any[], tokenId: string, tokenAmount: number
         for (const t in u_parsed.assets) {
             // check there is enough to swap
             if (u_parsed.assets[t].tokenId == tokenId &&
-                u_parsed.assets[t].amount >= tokenAmount) {
+                Number(u_parsed.assets[t].amount) >= Number(tokenAmount)) {
                 return utxos[u]
             }
         }
@@ -344,7 +344,7 @@ export function getBestUtxoSender(utxos: any[], tokenId: string, tokenAmount: nu
         if (BigInt(u_parsed.value) >= fees) {
             for (const t in u_parsed.assets) {
                 if (u_parsed.assets[t].tokenId == tokenId &&
-                    u_parsed.assets[t].amount >= tokenAmount) {
+                    Number(u_parsed.assets[t].amount) >= Number(tokenAmount)) {
                     return utxos[u]
                 }
             }
