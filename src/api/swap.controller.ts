@@ -27,7 +27,8 @@ import {
     I64,
     TokenAmount,
     TokenId, 
-    Constant} from '../../pkg-nodejs/ergo_lib_wasm'
+    Constant
+} from '../../pkg-nodejs/ergo_lib_wasm'
 
 import { currentHeight } from '../ergo/explorer';
 import { getTokenListFromUtxos, parseUtxo, enrichUtxos } from '../ergo/utxos';
@@ -71,21 +72,35 @@ export default class SwapController {
                                                                 [amountToSend]);
 
         const creationHeight = await currentHeight();
-        const amountNano = BigInt(Math.round((amountToSendFloat * NANOERG_TO_ERG)));
-        const feeNano =  BigInt(Math.round((feeFloat * NANOERG_TO_ERG)));
+        const swapBoxValue = BigInt(Math.round((amountToSendFloat * NANOERG_TO_ERG)));
+        const scBoxValue = BigInt(Math.round((amountToSendFloat * NANOERG_TO_ERG)));
+        const feeBoxValue = BigInt(Math.round((feeFloat * NANOERG_TO_ERG)));
 
-        let selectedUtxos: any[] = []
+        let inputUtxos = new Array()
+        let outputUtxos = new Array()
+        inputUtxos = JSON.parse(JSON.stringify(selectedUtxosSender));
+        outputUtxos = JSON.parse(JSON.stringify(selectedUtxosSender));
+
         const scUtxo = getBestUtxoSC(selectedUtxosSC,TOKENID_TEST,amountToSend)
+        if (scUtxo === undefined) {
+            profiler.done({
+                hostname: `${swapOwlLogger.defaultMeta.hostname}`,
+                request_id: `${uuid}`,
+                tx_id: ``,
+                message: "Couldn't find a smart contract utxo",
+                code: 500
+            })
+            res.status(500).json()
+            return
+        }
         // SAFEW REQ
         //const enrichedUtxo = await enrichUtxos([scUtxo], true)
-        const senderUtxo = getBestUtxoSender(selectedUtxosSender,TOKENID_FAKE_SIGUSD,amountToSend,(amountNano+feeNano))
-        selectedUtxos.push(scUtxo)
-        selectedUtxos.push(senderUtxo)
+        inputUtxos.push(scUtxo)
 
         const outputCandidates = ErgoBoxCandidates.empty();
 
         let swapBox = new ErgoBoxCandidateBuilder(
-            BoxValue.from_i64(I64.from_str(amountNano.toString())),
+            BoxValue.from_i64(I64.from_str(swapBoxValue.toString())),
             Contract.pay_to_address(Address.from_base58(recipient)),
             creationHeight);
 
@@ -96,7 +111,7 @@ export default class SwapController {
         outputCandidates.add(swapBox.build());
 
         const scBox = new ErgoBoxCandidateBuilder(
-            BoxValue.from_i64(I64.from_str(amountNano.toString())),
+            BoxValue.from_i64(I64.from_str(scBoxValue.toString())),
             Contract.pay_to_address(Address.from_base58(TEST_SWAP_CONTRACT_ADDRESS)),
             creationHeight)
     
@@ -136,49 +151,65 @@ export default class SwapController {
         outputCandidates.add(scBox.build());
 
         // prepare the miner fee box
-        const feeBox = ErgoBoxCandidate.new_miner_fee_box(BoxValue.from_i64(I64.from_str(feeNano.toString())), await currentHeight());
+        const feeBox = ErgoBoxCandidate.new_miner_fee_box(BoxValue.from_i64(I64.from_str(feeBoxValue.toString())), creationHeight);
         outputCandidates.add(feeBox);
 
         // prepare changeBox
-        const changeAmountNano = BigInt(senderUtxo.value) - amountNano - feeNano;
+        // sum all token amounts from inputs
+        let totalErg: number = 0
+        let inputAssets: any = []
+        outputUtxos.forEach((box: any) => {
+            totalErg = totalErg + Number(box.value)
+            box.assets.forEach((asset: any) => {
+                let found = false
+                inputAssets.forEach((inputAsset: any, index: number) => {
+                    if (asset.tokenId == inputAsset.tokenId) {
+                        found = true
+                        inputAssets[index].amount = Number(inputAssets[index].amount) + Number(asset.amount)
+                    }
+                })
+                if (!found) {
+                    inputAssets.push(asset)
+                }
+            })
+        })
+        // calculate total ERG change Amount
+        const changeBoxValue = BigInt(totalErg) - swapBoxValue - feeBoxValue;
         let changeBox = new ErgoBoxCandidateBuilder(
-            BoxValue.from_i64(I64.from_str(changeAmountNano.toString())),
+            BoxValue.from_i64(I64.from_str(changeBoxValue.toString())),
             Contract.pay_to_address(Address.from_base58(recipient)),
             creationHeight);
 
-        // calculate final Sender token balances
-        let senderSigUSDRemainder: number = amountToSend
-        for (const i in senderUtxo.assets) {
-            if (senderUtxo.assets[i].tokenId == TOKENID_FAKE_SIGUSD) {
-                senderSigUSDRemainder = parseInt(senderUtxo.assets[i].amount) - amountToSend
-            } else {
-                changeBox.add_token(TokenId.from_str(senderUtxo.assets[i].tokenId),
-                    TokenAmount.from_i64(I64.from_str(senderUtxo.assets[i].amount.toString())
+        // calculate final token balances for the changeBox
+        let senderSigUSDRemainder: number = 0
+        inputAssets.forEach((asset: any) => {
+            if (asset.tokenId === TOKENID_FAKE_SIGUSD) {
+                senderSigUSDRemainder = Number(asset.amount) - Number(amountToSend)
+                changeBox.add_token(TokenId.from_str(TOKENID_FAKE_SIGUSD),
+                  TokenAmount.from_i64(I64.from_str(senderSigUSDRemainder.toString())
                 ));
-            }
-        }
-
-        if (senderSigUSDRemainder > 0) {
-            changeBox.add_token(TokenId.from_str(TOKENID_FAKE_SIGUSD),
-                TokenAmount.from_i64(I64.from_str(senderSigUSDRemainder.toString())
+            } else {
+                changeBox.add_token(TokenId.from_str(asset.tokenId),
+                TokenAmount.from_i64(I64.from_str(asset.amount.toString())
             ));
-        }
+            }
+        })
 
         outputCandidates.add(changeBox.build());
 
-        const unsignedTransaction = await createUnsignedTransaction(selectedUtxos, outputCandidates);
+        const unsignedTransaction = await createUnsignedTransaction(inputUtxos, outputCandidates);
 
         let jsonUnsignedTx = JSON.parse(unsignedTransaction.to_json());
 
         let txId: string | RegExpMatchArray | null = ""
         let txReducedB64safe: string | RegExpMatchArray | null = ""
         try {
-            [txId, txReducedB64safe] = await getTxReducedB64Safe(jsonUnsignedTx, selectedUtxos);
+            [txId, txReducedB64safe] = await getTxReducedB64Safe(jsonUnsignedTx, inputUtxos);
         } catch(e) {
             console.log("exception caught from getTxReducedB64Safe", e)
         }
 
-        jsonUnsignedTx.inputs = selectedUtxos
+        jsonUnsignedTx.inputs = inputUtxos
 
         // set extension: {}
         for (const i in jsonUnsignedTx.inputs) {
@@ -236,8 +267,14 @@ export default class SwapController {
                                                                 [amountToSend]);
 
         const creationHeight = await currentHeight();
-        const amountNano = BigInt(Math.round((amountToSendFloat * NANOERG_TO_ERG)));
-        const feeNano =  BigInt(Math.round((feeFloat * NANOERG_TO_ERG)));
+        const swapBoxValue = BigInt(Math.round((amountToSendFloat * NANOERG_TO_ERG)));
+        const scBoxValue = BigInt(Math.round((amountToSendFloat * NANOERG_TO_ERG)));
+        const feeBoxValue = BigInt(Math.round((feeFloat * NANOERG_TO_ERG)));
+
+        let inputUtxos = new Array()
+        let outputUtxos = new Array()
+        inputUtxos = JSON.parse(JSON.stringify(selectedUtxosSender));
+        outputUtxos = JSON.parse(JSON.stringify(selectedUtxosSender));
 
         let selectedUtxos: any[] = []
         const scUtxo = getBestUtxoSC(selectedUtxosSC,TOKENID_FAKE_SIGUSD,amountToSend)
@@ -254,14 +291,12 @@ export default class SwapController {
         }
         // SAFEW REQ
         //const enrichedUtxo = await enrichUtxos([scUtxo], true)
-        const senderUtxo = getBestUtxoSender(selectedUtxosSender,TOKENID_TEST,amountToSend,(amountNano+feeNano))
-        selectedUtxos.push(scUtxo)
-        selectedUtxos.push(senderUtxo)
+        inputUtxos.push(scUtxo)
 
         const outputCandidates = ErgoBoxCandidates.empty();
 
         let swapBox = new ErgoBoxCandidateBuilder(
-            BoxValue.from_i64(I64.from_str(amountNano.toString())),
+            BoxValue.from_i64(I64.from_str(swapBoxValue.toString())),
             Contract.pay_to_address(Address.from_base58(recipient)),
             creationHeight);
 
@@ -272,7 +307,7 @@ export default class SwapController {
         outputCandidates.add(swapBox.build());
 
         const scBox = new ErgoBoxCandidateBuilder(
-            BoxValue.from_i64(I64.from_str(amountNano.toString())),
+            BoxValue.from_i64(I64.from_str(scBoxValue.toString())),
             Contract.pay_to_address(Address.from_base58(TEST_SWAP_CONTRACT_ADDRESS)),
             creationHeight)
     
@@ -314,49 +349,65 @@ export default class SwapController {
         outputCandidates.add(scBox.build());
 
         // prepare the miner fee box
-        const feeBox = ErgoBoxCandidate.new_miner_fee_box(BoxValue.from_i64(I64.from_str(feeNano.toString())), await currentHeight());
+        const feeBox = ErgoBoxCandidate.new_miner_fee_box(BoxValue.from_i64(I64.from_str(feeBoxValue.toString())), creationHeight);
         outputCandidates.add(feeBox);
 
         // prepare changeBox
-        const changeAmountNano = BigInt(senderUtxo.value) - amountNano - feeNano;
+        // sum all token amounts from inputs
+        let totalErg: number = 0
+        let inputAssets: any = []
+        outputUtxos.forEach((box: any) => {
+            totalErg = totalErg + Number(box.value)
+            box.assets.forEach((asset: any) => {
+                let found = false
+                inputAssets.forEach((inputAsset: any, index: number) => {
+                    if (asset.tokenId == inputAsset.tokenId) {
+                        found = true
+                        inputAssets[index].amount = Number(inputAssets[index].amount) + Number(asset.amount)
+                    }
+                })
+                if (!found) {
+                    inputAssets.push(asset)
+                }
+            })
+        })
+        // calculate total ERG change Amount
+        const changeBoxValue = BigInt(totalErg) - swapBoxValue - feeBoxValue;
         let changeBox = new ErgoBoxCandidateBuilder(
-            BoxValue.from_i64(I64.from_str(changeAmountNano.toString())),
+            BoxValue.from_i64(I64.from_str(changeBoxValue.toString())),
             Contract.pay_to_address(Address.from_base58(recipient)),
             creationHeight);
 
-        // calculate final Sender token balances
-        let senderOWLRemainder: number = amountToSend
-        for (const i in senderUtxo.assets) {
-            if (senderUtxo.assets[i].tokenId == TOKENID_TEST) {
-                senderOWLRemainder = parseInt(senderUtxo.assets[i].amount) - amountToSend
-            } else {
-                changeBox.add_token(TokenId.from_str(senderUtxo.assets[i].tokenId),
-                    TokenAmount.from_i64(I64.from_str(senderUtxo.assets[i].amount.toString())
+        // calculate final token balances for the changeBox
+        let senderOWLRemainder: number = 0
+        inputAssets.forEach((asset: any) => {
+            if (asset.tokenId === TOKENID_TEST) {
+                senderOWLRemainder = Number(asset.amount) - Number(amountToSend)
+                changeBox.add_token(TokenId.from_str(TOKENID_FAKE_SIGUSD),
+                  TokenAmount.from_i64(I64.from_str(senderOWLRemainder.toString())
                 ));
-            }
-        }
-
-        if (senderOWLRemainder > 0) {
-            changeBox.add_token(TokenId.from_str(TOKENID_TEST),
-                TokenAmount.from_i64(I64.from_str(senderOWLRemainder.toString())
+            } else {
+                changeBox.add_token(TokenId.from_str(asset.tokenId),
+                TokenAmount.from_i64(I64.from_str(asset.amount.toString())
             ));
-        }
+            }
+        })
 
         outputCandidates.add(changeBox.build());
 
-        const unsignedTransaction = await createUnsignedTransaction(selectedUtxos, outputCandidates);
+        const unsignedTransaction = await createUnsignedTransaction(inputUtxos, outputCandidates);
 
         let jsonUnsignedTx = JSON.parse(unsignedTransaction.to_json());
 
         let txId: string | RegExpMatchArray | null = ""
         let txReducedB64safe: string | RegExpMatchArray | null = ""
         try {
-            [txId, txReducedB64safe] = await getTxReducedB64Safe(jsonUnsignedTx, selectedUtxos);
+            [txId, txReducedB64safe] = await getTxReducedB64Safe(jsonUnsignedTx, inputUtxos);
         } catch(e) {
             logger.error(`err=${e}`)
         }
 
-        jsonUnsignedTx.inputs = selectedUtxos
+        jsonUnsignedTx.inputs = inputUtxos
 
         // set extension: {}
         for (const i in jsonUnsignedTx.inputs) {
