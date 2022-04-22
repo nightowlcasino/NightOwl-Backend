@@ -8,7 +8,13 @@ export enum Severity {
 
 export class ErgoPayResponse {
     
-    constructor(message?: string, messageSeverity?: Severity, address?: string, reducedTx?: string, replyTo?: string) {
+    constructor(
+        message?: string,
+        messageSeverity?: Severity,
+        address?: string,
+        reducedTx?: string | RegExpMatchArray | null,
+        replyTo?: string
+    ) {
         this.message = message
         this.messageSeverity = messageSeverity
         this.address = address
@@ -18,7 +24,7 @@ export class ErgoPayResponse {
     message?: string
     messageSeverity?: Severity
     address?: string
-    reducedTx?: string
+    reducedTx?: string | RegExpMatchArray | null
     replyTo?: string
 
 }
