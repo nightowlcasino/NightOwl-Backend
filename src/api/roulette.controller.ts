@@ -39,11 +39,12 @@ import {
 } from '../../pkg-nodejs/ergo_lib_wasm'
 
 import { currentHeight } from '../ergo/explorer';
+import { getTokenListFromUtxos, parseUtxo, enrichUtxos } from '../ergo/utxos';
 import { RouletteGame } from "../models/roulettegame"
 
 /*
 rouletteGame = {
-  txFee: minBoxValue * (# of bets) + minerFee,
+  txFee: minBoxValue * (# of bets) + minerFee + changeBoxFee + houseResultFee,
   totalWager: XX OWLs,
   bets: [
   // Red/Black
@@ -93,7 +94,6 @@ rouletteGame = {
 }
 */
 
-const feeFloat = parseFloat(String(FEE_VALUE/NANOERG_TO_ERG));
 const amountToSendFloat = parseFloat(String(MIN_BOX_VALUE/NANOERG_TO_ERG));
 
 export default class RouletteController {
@@ -115,13 +115,9 @@ export default class RouletteController {
         sender_game: `${gameRequest}`,
     });
 
-    console.log(req.body.game)
-
     const recipient = req.body.senderAddr
     const rouletteGame = req.body.game
     const selectedUtxosSender = req.body.utxos
-
-    const totalAmountToSendFloatERG = amountToSendFloat + feeFloat
 
     /*
     rouletteGame = {
@@ -141,7 +137,7 @@ export default class RouletteController {
 
     let housePayout: number = 0
     rouletteGame.bets.forEach((element: any) => {
-      housePayout = housePayout + (element.multiplier * element.amount)
+      housePayout = housePayout + Number(element.multiplier * element.amount)
     });
 
     const gameWitnessTokens = [
@@ -174,26 +170,20 @@ export default class RouletteController {
                                                                houseContractTokens,
                                                                [housePayout]);
 
-    //console.log("gameWitnessUtxos")
-    //console.log(gameWitnessUtxos[0])
-    //console.log("houseContractUtxos")
-    //console.log(houseContractUtxos[0])
-
     const creationHeight = await currentHeight();
-    const amountNano = BigInt(MIN_BOX_VALUE);
-    const feeNano =  BigInt(FEE_VALUE);
+    const houseResultValue = BigInt(MIN_BOX_VALUE)
+    const betValue = BigInt(MIN_BOX_VALUE/2)
+    const feeBoxValue =  BigInt(FEE_VALUE)
 
-    // Player Input UTXO
+    let inputUtxos = new Array()
+    let outputUtxos = new Array()
+    inputUtxos = JSON.parse(JSON.stringify(selectedUtxosSender));
+    outputUtxos = JSON.parse(JSON.stringify(selectedUtxosSender));
+
     // SAFEW REQ
     //const enrichedUtxo = await enrichUtxos([scUtxo], true)
-    const senderUtxo = getBestUtxoSender(selectedUtxosSender,TOKENID_TEST,rouletteGame.totalWager,(amountNano+feeNano))
-
-    let selectedUtxos: any[] = []
-    selectedUtxos.push(gameWitnessUtxos[0])
-    selectedUtxos.push(houseContractUtxos[0])
-    selectedUtxos.push(senderUtxo)
-
-    //console.log(senderUtxo)
+    inputUtxos.unshift(houseContractUtxos[0])
+    inputUtxos.unshift(gameWitnessUtxos[0])
 
     const outputCandidates = ErgoBoxCandidates.empty();
 
@@ -202,12 +192,13 @@ export default class RouletteController {
         Contract.pay_to_address(Address.from_base58(TEST_GAME_WITNESS_CONTRACT_ADDRESS)),
         creationHeight);
 
-        gameWitnessBox.add_token(TokenId.from_str(TOKENID_FAKE_WITNESS),
-        TokenAmount.from_i64(I64.from_str("1")
+    gameWitnessBox.add_token(TokenId.from_str(TOKENID_FAKE_WITNESS),
+      TokenAmount.from_i64(I64.from_str("1")
     ));
 
     outputCandidates.add(gameWitnessBox.build());
 
+    // prepare house contract
     const houseContractBox = new ErgoBoxCandidateBuilder(
         BoxValue.from_i64(I64.from_str(houseContractUtxos[0].value)),
         Contract.pay_to_address(Address.from_base58(TEST_HOUSE_CONTRACT_ADDRESS)),
@@ -218,7 +209,7 @@ export default class RouletteController {
         TokenAmount.from_i64(I64.from_str(houseContractUtxos[0].assets[0].amount.toString())
     ))
     
-    // deduct OWL multiplier from Assets[1]
+    // deduct total OWL multiplier from Assets[1]
     let owlRemainder: number = Number(houseContractUtxos[0].assets[1].amount)
     owlRemainder = owlRemainder - housePayout
     if (owlRemainder > 0) {
@@ -238,50 +229,97 @@ export default class RouletteController {
     
     outputCandidates.add(houseContractBox.build());
 
-    const boxValue = MIN_BOX_VALUE / 2
     // prepare result contract(s)
-    rouletteGame.bets.forEach((element: any) => {
+    let boxValue = BigInt(MIN_BOX_VALUE / 2)
+    rouletteGame.bets.forEach((bet: any, index: number) => {
+      if (index === 0) {
+        boxValue = betValue + houseResultValue
+      } else {
+        boxValue = betValue
+      }
       const resultContractBox = new ErgoBoxCandidateBuilder(
         BoxValue.from_i64(I64.from_str(boxValue.toString())),
         Contract.pay_to_address(Address.from_base58(TEST_RESULT_CONSTANT_ADDRESS)),
         creationHeight)
 
-      // OWL bet amount
+      // OWL player bet amount + house multiplier
+      const houseEscrow = Number(bet.amount) + Number(bet.amount * bet.multiplier)
       resultContractBox.add_token(TokenId.from_str(TOKENID_TEST),
-        TokenAmount.from_i64(I64.from_str(element.amount.toString())
+        TokenAmount.from_i64(I64.from_str(houseEscrow.toString())
       ))
 
       // Set Registers
-      resultContractBox.set_register_value(NonMandatoryRegisterId.R4, Constant.from_i32(Number(element.r4)))
-      resultContractBox.set_register_value(NonMandatoryRegisterId.R5, Constant.from_i32(Number(element.r5)))
-      try {
-        //const senderErgoTree = ErgoTree.from_base16_bytes(senderUtxo.ergoTree)
-        //console.log(senderErgoTree)
-        resultContractBox.set_register_value(NonMandatoryRegisterId.R6, Constant.decode_from_base16(senderUtxo.ergoTree))
-      } catch(e) {
-        console.log(e)
-      }
+      resultContractBox.set_register_value(NonMandatoryRegisterId.R4, Constant.from_i32(Number(bet.r4)))
+      resultContractBox.set_register_value(NonMandatoryRegisterId.R5, Constant.from_i32(Number(bet.r5)))
+      const senderErgoTree = ErgoTree.from_base16_bytes(selectedUtxosSender[0].ergoTree).sigma_serialize_bytes()
+      resultContractBox.set_register_value(NonMandatoryRegisterId.R6, Constant.from_byte_array(senderErgoTree))
 
       outputCandidates.add(resultContractBox.build())
     })
 
+    // prepare change box
+    // sum all token amounts from inputs
+    let totalErg: number = 0
+    let inputAssets: any = []
+    outputUtxos.forEach((box: any) => {
+        totalErg = totalErg + Number(box.value)
+        box.assets.forEach((asset: any) => {
+            let found = false
+            inputAssets.forEach((inputAsset: any, index: number) => {
+                if (asset.tokenId == inputAsset.tokenId) {
+                    found = true
+                    inputAssets[index].amount = Number(inputAssets[index].amount) + Number(asset.amount)
+                }
+            })
+            if (!found) {
+                inputAssets.push(asset)
+            }
+        })
+    })
+    // calculate total ERG change Amount
+    const totalBetValue = betValue * BigInt(rouletteGame.bets.length)
+    const changeBoxValue = BigInt(totalErg) - houseResultValue - feeBoxValue - totalBetValue;
+    let changeBox = new ErgoBoxCandidateBuilder(
+        BoxValue.from_i64(I64.from_str(changeBoxValue.toString())),
+        Contract.pay_to_address(Address.from_base58(recipient)),
+        creationHeight);
+
+    // calculate final token balances for the changeBox
+    let senderOWLRemainder: number = 0
+    inputAssets.forEach((asset: any) => {
+        if (asset.tokenId === TOKENID_TEST) {
+            senderOWLRemainder = Number(asset.amount) - Number(rouletteGame.totalWager)
+            if (senderOWLRemainder !== 0) {
+              changeBox.add_token(TokenId.from_str(TOKENID_TEST),
+                TokenAmount.from_i64(I64.from_str(senderOWLRemainder.toString())
+              ));
+            }
+        } else {
+            changeBox.add_token(TokenId.from_str(asset.tokenId),
+            TokenAmount.from_i64(I64.from_str(asset.amount.toString())
+        ));
+        }
+    })
+
+    outputCandidates.add(changeBox.build());
+
     // prepare the miner fee box
-    const feeBox = ErgoBoxCandidate.new_miner_fee_box(BoxValue.from_i64(I64.from_str(feeNano.toString())), creationHeight);
+    const feeBox = ErgoBoxCandidate.new_miner_fee_box(BoxValue.from_i64(I64.from_str(feeBoxValue.toString())), creationHeight);
     outputCandidates.add(feeBox);
 
-    const unsignedTransaction = await createUnsignedTransaction(selectedUtxos, outputCandidates);
+    const unsignedTransaction = await createUnsignedTransaction(inputUtxos, outputCandidates);
 
     let jsonUnsignedTx = JSON.parse(unsignedTransaction.to_json());
 
     let txId: string | RegExpMatchArray | null = ""
     let txReducedB64safe: string | RegExpMatchArray | null = ""
     try {
-        [txId, txReducedB64safe] = await getTxReducedB64Safe(jsonUnsignedTx, selectedUtxos);
+        [txId, txReducedB64safe] = await getTxReducedB64Safe(jsonUnsignedTx, inputUtxos);
     } catch(e) {
         console.log("exception caught from getTxReducedB64Safe", e)
     }
 
-    jsonUnsignedTx.inputs = selectedUtxos
+    jsonUnsignedTx.inputs = inputUtxos
 
     // set extension: {}
     for (const i in jsonUnsignedTx.inputs) {
