@@ -6,7 +6,7 @@ import logger from "./logger"
 //const MongoClient = require('mongodb').MongoClient;
 
 dotenv.config()
-const port = process.env.PORT || 8000
+const port = process.env.PORT || 8088
 
 //const work = async () => {
 //   return new Promise(resolve => setTimeout(resolve, 2000));
@@ -38,6 +38,6 @@ const port = process.env.PORT || 8000
     })*/
 //await startClock()
 
-app.listen(port, () => {
+app.listen(Number(port), '127.0.0.1', () => {
     logger.info(`listening on port ${port}`)
 })
