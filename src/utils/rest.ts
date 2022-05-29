@@ -1,8 +1,13 @@
 //import { displayTransaction, errorAlert } from "../utils/Alerts";
 import fetch from "node-fetch";
+import dotenv from "dotenv";
+
+dotenv.config()
+const nodeUser = process.env.NODE_USER || ""
+const nodePass = process.env.NODE_PASS || ""
+const apikey   = process.env.NODE_APIKEY || ""
 
 export async function postTx(url: any, body = {}, apiKey = '') {
-    console.log("post", url)
     fetch(url, {
         method: 'POST',
         headers: {
@@ -11,6 +16,8 @@ export async function postTx(url: any, body = {}, apiKey = '') {
             'mode': 'cors',
             'Access-Control-Allow-Origin': '*',
             'Access-Control-Allow-Headers': 'Origin, X-Requested-With, Content-Type, Accept',
+            'Authorization': nodeUser !== "" && nodePass !== "" ? 'Basic ' + btoa(nodeUser+':'+nodePass) : '',
+            'api_key': apikey !== "" ? apikey : '',
         },
         body: JSON.stringify(body)
     }).then(response => Promise.all([response.ok, response.json()]))
@@ -22,6 +29,7 @@ export async function postTx(url: any, body = {}, apiKey = '') {
                 console.log("fetch2", body);
                 try {
                     console.log("Failed to fetch", JSON.stringify(body))
+                    return body
                     //errorAlert("Failed to fetch", JSON.stringify(body))
                 } catch (e) {
                     console.log("fetch21", body.toString());
@@ -53,6 +61,7 @@ export async function get(url: any, apiKey = '') {
             headers: {
                 Accept: 'application/json',
                 'Content-Type': 'application/json',
+                'Authorization': nodeUser !== "" && nodePass !== "" ? 'Basic ' + btoa(nodeUser+':'+nodePass) : '',
                 api_key: apiKey,
             }
         }).then(res => res.json());

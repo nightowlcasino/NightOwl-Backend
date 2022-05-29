@@ -1,11 +1,12 @@
-import { DEFAULT_NODE_ADDRESS } from '../constants/ergo';
+import { DEFAULT_NODE_ADDRESS, NIGHTOWL_EXPLORER_API_ADDRESS } from '../constants/ergo';
 import { get, postTx } from '../utils/rest';
 
 // in order to secure the node requests (port 9053) the following setting have been done on apache
 // prevent any connection to 9053 except from localhost
 // proxy https://transaction-builder.ergo.ga/blocks to http://localhost:9053/blocks/lastHeaders/10
 
-export const nodeApi = DEFAULT_NODE_ADDRESS;
+//export const nodeApi = DEFAULT_NODE_ADDRESS;
+export const nodeApi = NIGHTOWL_EXPLORER_API_ADDRESS;
 
 async function getRequest(url: any) {
     return await get(nodeApi + url).then(res => {
