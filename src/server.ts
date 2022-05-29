@@ -3,6 +3,7 @@ import cors from "cors"
 import bodyparser from "body-parser"
 import leaderboard from "./api/leaderboard.route"
 import ergopay from "./api/ergopay.route"
+import ergonode from "./api/ergonode.route"
 import swap from "./api/swap.route"
 import roulette from "./api/roulette.route"
 import path from "path"
@@ -25,6 +26,8 @@ app.use("/api/v1/leaderboard", leaderboard)
 app.use("/api/v1/ergopay", ergopay)
 app.use("/api/v1/swap", swap)
 app.use("/api/v1/roulette", roulette)
+//app.use("/api/v1/random-number/roulette", )
+app.use("/api/v1/transactions", ergonode)
 app.get("*", (req: Request, res: Response) => {
   res.sendFile(path.join(__dirname, '../client/build/index.html'))
 })

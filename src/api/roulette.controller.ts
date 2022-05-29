@@ -11,7 +11,7 @@ import {
   TOKENID_FAKE_LP,
   TEST_GAME_WITNESS_CONTRACT_ADDRESS,
   TEST_HOUSE_CONTRACT_ADDRESS,
-  TEST_RESULT_CONSTANT_ADDRESS
+  TEST_RESULT_CONTRACT_ADDRESS
 } from "../constants/ergo"
 
 import {
@@ -97,26 +97,35 @@ rouletteGame = {
 const amountToSendFloat = parseFloat(String(MIN_BOX_VALUE/NANOERG_TO_ERG));
 
 export default class RouletteController {
-  static async Spin(req: Request, res:Response): Promise<void> {
+  static async BetTx(req: Request, res:Response): Promise<void> {
     const profiler = logger.startTimer();
     const uuid = uuidv4()
     const rouletteLogger = logger.child({ request_id: `${uuid}` });
-    let gameRequest: string = ""
+    let boardRequest: string = ""
+    let utxos: string = ""
     
     try {
-      gameRequest = JSON.stringify(req.body.game)
+      boardRequest = JSON.stringify(req.body.board)
+    } catch(e) {
+      console.log(e)
+    }
+
+    try {
+      utxos = JSON.stringify(req.body.utxos)
     } catch(e) {
       console.log(e)
     }
 
     rouletteLogger.info('', {
-        url: '/api/v1/roulette/spin',
-        sender_addr: `${req.body.senderAddr}`,
-        sender_game: `${gameRequest}`,
+      url: '/api/v1/roulette/bet-tx',
+      game: "roulette",
+      sender_addr: `${req.body.senderAddr}`,
+      sender_bets: `${boardRequest}`,
+      utxos: `${utxos}`
     });
 
     const recipient = req.body.senderAddr
-    const rouletteGame = req.body.game
+    const rouletteGame = req.body.board
     const selectedUtxosSender = req.body.utxos
 
     /*
@@ -239,7 +248,7 @@ export default class RouletteController {
       }
       const resultContractBox = new ErgoBoxCandidateBuilder(
         BoxValue.from_i64(I64.from_str(boxValue.toString())),
-        Contract.pay_to_address(Address.from_base58(TEST_RESULT_CONSTANT_ADDRESS)),
+        Contract.pay_to_address(Address.from_base58(TEST_RESULT_CONTRACT_ADDRESS)),
         creationHeight)
 
       // OWL player bet amount + house multiplier
