@@ -336,6 +336,7 @@ export default class RouletteController {
     }
 
     profiler.done({
+      url: '/api/v1/roulette/bet-tx',
       hostname: `${rouletteLogger.defaultMeta.hostname}`,
       request_id: `${uuid}`,
       tx_id: `${txId}`,
