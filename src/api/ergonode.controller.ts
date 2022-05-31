@@ -48,15 +48,29 @@ export default class ErgoNodeController {
       body: JSON.stringify(req.body.tx)
     }).then(checkResponseStatus)
       .then(res => res.json())
-      .then(json => txResp = json)
-      .catch(err => console.log(err))
-
-    profiler.done({
-      hostname: `${sendTxLogger.defaultMeta.hostname}`,
-      request_id: `${uuid}`,
-      tx_id: `${req.body.tx.id}`,
-      code: 200
-    })
-    res.status(200).json(`${req.body.tx.id}`)
+      .then(json => {
+        txResp = json
+        profiler.done({
+          hostname: `${sendTxLogger.defaultMeta.hostname}`,
+          request_id: `${uuid}`,
+          tx_id: `${txResp}`,
+          code: 200,
+          url: '/api/v1/transactions'
+        })
+        res.status(200).json(`${txResp}`)
+        return
+      })
+      .catch(err => {
+        profiler.done({
+          hostname: `${sendTxLogger.defaultMeta.hostname}`,
+          request_id: `${uuid}`,
+          tx_id: `${req.body.tx.id}`,
+          resp: `${err}`,
+          code: 500,
+          url: '/api/v1/transactions'
+        })
+        res.status(500).json("node failed to send tx")
+        return
+      })
   }
 }
