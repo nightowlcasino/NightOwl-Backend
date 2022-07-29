@@ -7,6 +7,7 @@ import logger from "./logger"
 
 dotenv.config()
 const port = process.env.PORT || 8088
+const host = process.env.HOST || "0.0.0.0"
 
 //const work = async () => {
 //   return new Promise(resolve => setTimeout(resolve, 2000));
@@ -38,6 +39,6 @@ const port = process.env.PORT || 8088
     })*/
 //await startClock()
 
-app.listen(Number(port), '127.0.0.1', () => {
+app.listen(Number(port), host, () => {
     logger.info(`listening on port ${port}`)
 })
