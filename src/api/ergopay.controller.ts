@@ -1,11 +1,11 @@
 import { Request, Response } from "express"
 import { ErgoPayReply } from "../ergo/ergopayreply"
-import { NANOERG_TO_ERG, FEE_VALUE, MIN_BOX_VALUE, TOKENID_TEST } from "../constants/ergo"
+import { NANOERG_TO_ERG, FEE_VALUE, MIN_BOX_VALUE, TOKENID_FAKE_OWL } from "../constants/ergo"
 import { ErgoPayResponse, Severity } from "../ergo/ergopayresponse"
 import {
     createUnsignedTransaction,
-    getTxReducedB64Safe, 
-    getUtxosForSelectedInputs, 
+    getTxReducedB64Safe,
+    getUtxosForSelectedInputs,
     createTxOutputs
 } from '../ergo/ergolibUtils'
 
@@ -30,33 +30,33 @@ export default class ErgoPayController {
             res.status(200).json(response);
             return
         }
-        
+
         if (addr != "") {
             const recipient = "..." //smart contract address
             const sender = addr  // Comes from ERG mobile wallet
-            const feeFloat = parseFloat(String(FEE_VALUE/NANOERG_TO_ERG));
-            const amountToSendFloat = parseFloat(String(MIN_BOX_VALUE/NANOERG_TO_ERG));
+            const feeFloat = parseFloat(String(FEE_VALUE / NANOERG_TO_ERG));
+            const amountToSendFloat = parseFloat(String(MIN_BOX_VALUE / NANOERG_TO_ERG));
             const totalAmountToSendFloatERG = amountToSendFloat + feeFloat
             const selectedAddresses = [addr]
             const tokensToSend = [{
                 amount: amountToSend,
                 decimals: '0',
                 name: "NO TESTING TOKENS",
-                tokenId: TOKENID_TEST
+                tokenId: TOKENID_FAKE_OWL
             }]
 
             /*const tokenAmountToSend = [{
                 amountFloat: amountToSend,
-                id: TOKENID_TEST
+                id: TOKENID_FAKE_OWL
             }]*/
             const tokenAmountToSend = [amountToSend]
             const selectedUtxos = await getUtxosForSelectedInputs(selectedAddresses,
-                                                                  totalAmountToSendFloatERG,
-                                                                  tokensToSend,
-                                                                  tokenAmountToSend);
+                totalAmountToSendFloatERG,
+                tokensToSend,
+                tokenAmountToSend);
 
             const tokenAmountToSendInt = tokenAmountToSend.map((amountFloat: any, id: any) =>
-            Math.round(parseFloat(amountFloat.toString()) * Math.pow(10, parseInt(tokensToSend[id].decimals))));
+                Math.round(parseFloat(amountFloat.toString()) * Math.pow(10, parseInt(tokensToSend[id].decimals))));
 
             let outputCandidates: ErrorConstructor | ErgoBoxCandidates
             try {
@@ -78,13 +78,13 @@ export default class ErgoPayController {
             const [txId, txReducedB64safe] = await getTxReducedB64Safe(jsonUnsignedTx, selectedUtxos);
             console.log("txId: ", txId)
             //console.log("txReducedB64safe: ", txReducedB64safe)
-            
+
             response.reducedTx = txReducedB64safe
             response.address = addr
             response.message = `Your ${bet} OWL send Tx is ready to be placed`
             response.messageSeverity = Severity.INFORMATION
         }
-        
+
         res.status(200).json(response);
     }
 

@@ -3,7 +3,7 @@ import {
     NANOERG_TO_ERG,
     FEE_VALUE,
     MIN_BOX_VALUE,
-    TOKENID_TEST,
+    TOKENID_FAKE_OWL,
     TEST_SWAP_CONTRACT_ADDRESS,
     TOKENID_FAKE_SIGUSD
 } from "../constants/ergo"
@@ -26,7 +26,7 @@ import {
     ErgoBoxCandidateBuilder,
     I64,
     TokenAmount,
-    TokenId, 
+    TokenId,
     Constant
 } from '../../pkg-nodejs/ergo_lib_wasm'
 
@@ -34,14 +34,14 @@ import { currentHeight } from '../ergo/explorer';
 import { getTokenListFromUtxos, parseUtxo, enrichUtxos } from '../ergo/utxos';
 import { ergoTreeToAddress } from "../ergo/serializer";
 import logger from "../logger"
-import {v4 as uuidv4} from 'uuid'
+import { v4 as uuidv4 } from 'uuid'
 
-const feeFloat = parseFloat(String(FEE_VALUE/NANOERG_TO_ERG));
-const amountToSendFloat = parseFloat(String(MIN_BOX_VALUE/NANOERG_TO_ERG));
+const feeFloat = parseFloat(String(FEE_VALUE / NANOERG_TO_ERG));
+const amountToSendFloat = parseFloat(String(MIN_BOX_VALUE / NANOERG_TO_ERG));
 
 export default class SwapController {
 
-    static async SwapSigUSD(req: Request, res:Response): Promise<void> {
+    static async SwapSigUSD(req: Request, res: Response): Promise<void> {
         const profiler = logger.startTimer();
         const uuid = uuidv4()
         const swapOwlLogger = logger.child({ request_id: `${uuid}` });
@@ -59,17 +59,17 @@ export default class SwapController {
 
         const tokensToSendSC = [
             {
-              amount: amountToSend,
-              decimals: '0',
-              name: "NO TESTING TOKENS",
-              tokenId: TOKENID_TEST
+                amount: amountToSend,
+                decimals: '0',
+                name: "NO TESTING TOKENS",
+                tokenId: TOKENID_FAKE_OWL
             }
         ]
 
         const selectedUtxosSC = await getUtxosForSelectedInputs(selectedAddressesSC,
-                                                                totalAmountToSendFloatERG,
-                                                                tokensToSendSC,
-                                                                [amountToSend]);
+            totalAmountToSendFloatERG,
+            tokensToSendSC,
+            [amountToSend]);
 
         const creationHeight = await currentHeight();
         const swapBoxValue = BigInt(Math.round((amountToSendFloat * NANOERG_TO_ERG)));
@@ -81,7 +81,7 @@ export default class SwapController {
         inputUtxos = JSON.parse(JSON.stringify(selectedUtxosSender));
         outputUtxos = JSON.parse(JSON.stringify(selectedUtxosSender));
 
-        const scUtxo = getBestUtxoSC(selectedUtxosSC,TOKENID_TEST,amountToSend)
+        const scUtxo = getBestUtxoSC(selectedUtxosSC, TOKENID_FAKE_OWL, amountToSend)
         if (scUtxo === undefined) {
             profiler.done({
                 hostname: `${swapOwlLogger.defaultMeta.hostname}`,
@@ -104,9 +104,9 @@ export default class SwapController {
             Contract.pay_to_address(Address.from_base58(recipient)),
             creationHeight);
 
-        swapBox.add_token(TokenId.from_str(TOKENID_TEST),
+        swapBox.add_token(TokenId.from_str(TOKENID_FAKE_OWL),
             TokenAmount.from_i64(I64.from_str(amountToSend.toString())
-        ));
+            ));
 
         outputCandidates.add(swapBox.build());
 
@@ -114,14 +114,14 @@ export default class SwapController {
             BoxValue.from_i64(I64.from_str(scBoxValue.toString())),
             Contract.pay_to_address(Address.from_base58(TEST_SWAP_CONTRACT_ADDRESS)),
             creationHeight)
-    
+
         // calculate final SC token balances
         // OWL tokens needs to be first in the list
         let owlRemainder: number = 0
         let sigUSDTotal: number = 0
-        let tokensRemaining: {tokenId: string, amount: string}[] = []
+        let tokensRemaining: { tokenId: string, amount: string }[] = []
         for (const i in scUtxo.assets) {
-            if (scUtxo.assets[i].tokenId == TOKENID_TEST) {
+            if (scUtxo.assets[i].tokenId == TOKENID_FAKE_OWL) {
                 owlRemainder = parseInt(scUtxo.assets[i].amount) - Number(amountToSend)
             } else if (scUtxo.assets[i].tokenId == TOKENID_FAKE_SIGUSD) {
                 sigUSDTotal = Number(amountToSend) + parseInt(scUtxo.assets[i].amount)
@@ -133,21 +133,21 @@ export default class SwapController {
             }
         }
         if (owlRemainder > 0) {
-            scBox.add_token(TokenId.from_str(TOKENID_TEST),
+            scBox.add_token(TokenId.from_str(TOKENID_FAKE_OWL),
                 TokenAmount.from_i64(I64.from_str(owlRemainder.toString())
-            ))
+                ))
         }
         scBox.add_token(TokenId.from_str(TOKENID_FAKE_SIGUSD),
             TokenAmount.from_i64(I64.from_str(sigUSDTotal.toString())
-        ))
+            ))
 
         // Add remaining untouched tokens to scBox
         for (const i in tokensRemaining) {
             scBox.add_token(TokenId.from_str(tokensRemaining[i].tokenId),
                 TokenAmount.from_i64(I64.from_str(tokensRemaining[i].amount)
-            ))
+                ))
         }
-    
+
         outputCandidates.add(scBox.build());
 
         // prepare the miner fee box
@@ -186,12 +186,12 @@ export default class SwapController {
             if (asset.tokenId === TOKENID_FAKE_SIGUSD) {
                 senderSigUSDRemainder = Number(asset.amount) - Number(amountToSend)
                 changeBox.add_token(TokenId.from_str(TOKENID_FAKE_SIGUSD),
-                  TokenAmount.from_i64(I64.from_str(senderSigUSDRemainder.toString())
-                ));
+                    TokenAmount.from_i64(I64.from_str(senderSigUSDRemainder.toString())
+                    ));
             } else {
                 changeBox.add_token(TokenId.from_str(asset.tokenId),
-                TokenAmount.from_i64(I64.from_str(asset.amount.toString())
-            ));
+                    TokenAmount.from_i64(I64.from_str(asset.amount.toString())
+                    ));
             }
         })
 
@@ -205,7 +205,7 @@ export default class SwapController {
         let txReducedB64safe: string | RegExpMatchArray | null = ""
         try {
             [txId, txReducedB64safe] = await getTxReducedB64Safe(jsonUnsignedTx, inputUtxos);
-        } catch(e) {
+        } catch (e) {
             console.log("exception caught from getTxReducedB64Safe", e)
         }
 
@@ -235,11 +235,11 @@ export default class SwapController {
         res.status(200).json(jsonUnsignedTx)
     }
 
-    static async SwapOWL(req: Request, res:Response): Promise<void> {
+    static async SwapOWL(req: Request, res: Response): Promise<void> {
         const profiler = logger.startTimer();
         const uuid = uuidv4()
         const swapOwlLogger = logger.child({ request_id: `${uuid}` });
-        
+
         swapOwlLogger.info('', {
             url: '/api/v1/swap/owl',
             sender_addr: `${req.body.senderAddr}`,
@@ -254,17 +254,17 @@ export default class SwapController {
 
         const tokensToSendSC = [
             {
-              amount: amountToSend,
-              decimals: '2',
-              name: "SigUSD",
-              tokenId: TOKENID_FAKE_SIGUSD
+                amount: amountToSend,
+                decimals: '2',
+                name: "SigUSD",
+                tokenId: TOKENID_FAKE_SIGUSD
             }
         ]
 
         const selectedUtxosSC = await getUtxosForSelectedInputs(selectedAddressesSC,
-                                                                totalAmountToSendFloatERG,
-                                                                tokensToSendSC,
-                                                                [amountToSend]);
+            totalAmountToSendFloatERG,
+            tokensToSendSC,
+            [amountToSend]);
 
         const creationHeight = await currentHeight();
         const swapBoxValue = BigInt(Math.round((amountToSendFloat * NANOERG_TO_ERG)));
@@ -277,7 +277,7 @@ export default class SwapController {
         outputUtxos = JSON.parse(JSON.stringify(selectedUtxosSender));
 
         let selectedUtxos: any[] = []
-        const scUtxo = getBestUtxoSC(selectedUtxosSC,TOKENID_FAKE_SIGUSD,amountToSend)
+        const scUtxo = getBestUtxoSC(selectedUtxosSC, TOKENID_FAKE_SIGUSD, amountToSend)
         if (scUtxo === undefined) {
             profiler.done({
                 hostname: `${swapOwlLogger.defaultMeta.hostname}`,
@@ -302,7 +302,7 @@ export default class SwapController {
 
         swapBox.add_token(TokenId.from_str(TOKENID_FAKE_SIGUSD),
             TokenAmount.from_i64(I64.from_str(amountToSend.toString())
-        ));
+            ));
 
         outputCandidates.add(swapBox.build());
 
@@ -310,14 +310,14 @@ export default class SwapController {
             BoxValue.from_i64(I64.from_str(scBoxValue.toString())),
             Contract.pay_to_address(Address.from_base58(TEST_SWAP_CONTRACT_ADDRESS)),
             creationHeight)
-    
+
         // calculate final SC token balances
         // OWL tokens needs to be first in the list
         let sigUSDRemainder: number = 0
         let owlTotal: number = 0
-        let tokensRemaining: {tokenId: string, amount: string}[] = []
+        let tokensRemaining: { tokenId: string, amount: string }[] = []
         for (const i in scUtxo.assets) {
-            if (scUtxo.assets[i].tokenId == TOKENID_TEST) {
+            if (scUtxo.assets[i].tokenId == TOKENID_FAKE_OWL) {
                 owlTotal = Number(amountToSend) + parseInt(scUtxo.assets[i].amount)
             } else if (scUtxo.assets[i].tokenId == TOKENID_FAKE_SIGUSD) {
                 sigUSDRemainder = parseInt(scUtxo.assets[i].amount) - Number(amountToSend)
@@ -329,23 +329,23 @@ export default class SwapController {
             }
         }
 
-        scBox.add_token(TokenId.from_str(TOKENID_TEST),
-          TokenAmount.from_i64(I64.from_str(owlTotal.toString())
-        ))
+        scBox.add_token(TokenId.from_str(TOKENID_FAKE_OWL),
+            TokenAmount.from_i64(I64.from_str(owlTotal.toString())
+            ))
 
         if (sigUSDRemainder > 0) {
             scBox.add_token(TokenId.from_str(TOKENID_FAKE_SIGUSD),
                 TokenAmount.from_i64(I64.from_str(sigUSDRemainder.toString())
-            ))
+                ))
         }
 
         // Add remaining untouched tokens to scBox
         for (const i in tokensRemaining) {
             scBox.add_token(TokenId.from_str(tokensRemaining[i].tokenId),
                 TokenAmount.from_i64(I64.from_str(tokensRemaining[i].amount)
-            ))
+                ))
         }
-    
+
         outputCandidates.add(scBox.build());
 
         // prepare the miner fee box
@@ -381,15 +381,15 @@ export default class SwapController {
         // calculate final token balances for the changeBox
         let senderOWLRemainder: number = 0
         inputAssets.forEach((asset: any) => {
-            if (asset.tokenId === TOKENID_TEST) {
+            if (asset.tokenId === TOKENID_FAKE_OWL) {
                 senderOWLRemainder = Number(asset.amount) - Number(amountToSend)
                 changeBox.add_token(TokenId.from_str(TOKENID_FAKE_SIGUSD),
-                  TokenAmount.from_i64(I64.from_str(senderOWLRemainder.toString())
-                ));
+                    TokenAmount.from_i64(I64.from_str(senderOWLRemainder.toString())
+                    ));
             } else {
                 changeBox.add_token(TokenId.from_str(asset.tokenId),
-                TokenAmount.from_i64(I64.from_str(asset.amount.toString())
-            ));
+                    TokenAmount.from_i64(I64.from_str(asset.amount.toString())
+                    ));
             }
         })
 
@@ -403,7 +403,7 @@ export default class SwapController {
         let txReducedB64safe: string | RegExpMatchArray | null = ""
         try {
             [txId, txReducedB64safe] = await getTxReducedB64Safe(jsonUnsignedTx, inputUtxos);
-        } catch(e) {
+        } catch (e) {
             logger.error(`err=${e}`)
         }
 
@@ -423,7 +423,7 @@ export default class SwapController {
         //}
 
         //console.log("jsonUnsignedTx: ", jsonUnsignedTx)
-        
+
         profiler.done({
             hostname: `${swapOwlLogger.defaultMeta.hostname}`,
             request_id: `${uuid}`,

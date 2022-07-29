@@ -1,4 +1,4 @@
-import { MAX_NUMBER_OF_UNUSED_ADDRESS_PER_ACCOUNT, NANOERG_TO_ERG, TOKENID_FAKE_SIGUSD, TOKENID_TEST } from '../constants/ergo';
+import { MAX_NUMBER_OF_UNUSED_ADDRESS_PER_ACCOUNT, NANOERG_TO_ERG, TOKENID_FAKE_SIGUSD, TOKENID_FAKE_OWL } from '../constants/ergo';
 import { addressHasTransactions, currentHeight, unspentBoxesFor, unspentBoxesForV1 } from './explorer';
 import { byteArrayToBase64 } from './serializer';
 import { getLastHeaders } from "./node";
@@ -29,7 +29,7 @@ import {
     TokenId,
     UnsignedInput,
     UnsignedInputs,
-    UnsignedTransaction 
+    UnsignedTransaction
 } from '../../pkg-nodejs/ergo_lib_wasm'
 
 /* global BigInt */
@@ -167,10 +167,10 @@ export async function getUtxosForSelectedInputs(inputAddressList: any, ergAmount
     while (!hasEnoughSelectedTokens(selectedUtxos, tokens, tokensAmountToSend) && i < 1000) {
         //console.log("getUtxosForSelectedInputs1", selectedUtxos, unSelectedUtxos);
         var boxFound = false, boxIndex = -1;
-        for (const j in tokens) {   
+        for (const j in tokens) {
             if (tokensAmountToSend[j] > 0 && !boxFound) {
                 //console.log("getUtxosForSelectedInputs2", tokens[j].tokenId, tokensAmountToSend[j], boxFound, unSelectedUtxos);
-                boxIndex = unSelectedUtxos.findIndex(utxo => utxo.assets.map((tok: { tokenId: string; })=>tok.tokenId).includes(tokens[j].tokenId))
+                boxIndex = unSelectedUtxos.findIndex(utxo => utxo.assets.map((tok: { tokenId: string; }) => tok.tokenId).includes(tokens[j].tokenId))
                 //console.log("getUtxosForSelectedInputs3 boxIndex", boxIndex);
             }
         }
@@ -180,7 +180,7 @@ export async function getUtxosForSelectedInputs(inputAddressList: any, ergAmount
         i++
     }
     // Select boxes until we meet Erg requirement
-    while (BigInt(Math.round(ergAmount*NANOERG_TO_ERG)) > getUtxosListValue(selectedUtxos) && unSelectedUtxos.length > 0) {
+    while (BigInt(Math.round(ergAmount * NANOERG_TO_ERG)) > getUtxosListValue(selectedUtxos) && unSelectedUtxos.length > 0) {
         selectedUtxos.push(unSelectedUtxos.shift());
     }
     return selectedUtxos;
@@ -193,7 +193,7 @@ export async function getUtxosForSelectedInputs(inputAddressList: any, ergAmount
 // requiredTokenAmounts: Array of token amount (float) synchronized with requiredTokens
 export function hasEnoughSelectedTokens(utxos: any, requiredTokens: any, requiredTokenAmounts: any) {
     const utxosTokens = getTokenListFromUtxos(utxos);
-    const fixedRequiredTokenAmounts = requiredTokenAmounts.map((amount: any, id: any) => Math.round(parseFloat(amount.toString()) * Math.pow(10,requiredTokens[id].decimals)))
+    const fixedRequiredTokenAmounts = requiredTokenAmounts.map((amount: any, id: any) => Math.round(parseFloat(amount.toString()) * Math.pow(10, requiredTokens[id].decimals)))
     //console.log("utxosTokens",utxosTokens)
     //console.log("fixedRequiredTokenAmounts",fixedRequiredTokenAmounts)
     //console.log("requiredTokens",requiredTokens)
@@ -225,7 +225,7 @@ function getBoxValueAmount(valueInt: bigint): BoxValue {
 export async function createTxOutputs(selectedUtxos: any, sendToAddress: string, changeAddress: any, amountToSendFloat: any, feeFloat: any, tokens: any, tokenAmountToSend: any) {
     const creationHeight = await currentHeight() - 20; // allow some lag between explorer and node
     const amountNano = BigInt(Math.round((amountToSendFloat * NANOERG_TO_ERG)));
-    const feeNano =  BigInt(Math.round((feeFloat * NANOERG_TO_ERG)));
+    const feeNano = BigInt(Math.round((feeFloat * NANOERG_TO_ERG)));
     const outputCandidates = ErgoBoxCandidates.empty();
     let paymentBox: ErgoBoxCandidateBuilder
 
@@ -238,12 +238,12 @@ export async function createTxOutputs(selectedUtxos: any, sendToAddress: string,
         console.log("Error creating paymentBox: ", e);
         throw e
     }
-    for(const i in tokens){
-        if(tokenAmountToSend[i] > 0){
+    for (const i in tokens) {
+        if (tokenAmountToSend[i] > 0) {
             //console.log("createTxOutputs tokenAmountToSend", tokenAmountToSend[i])
             paymentBox.add_token(TokenId.from_str(tokens[i].tokenId),
                 TokenAmount.from_i64(I64.from_str(tokenAmountToSend[i].toString())
-            ));
+                ));
         }
     }
     outputCandidates.add(paymentBox.build());
@@ -254,19 +254,19 @@ export async function createTxOutputs(selectedUtxos: any, sendToAddress: string,
 
     // prepare the change box
     const changeAmountNano = getUtxosListValue(selectedUtxos) - amountNano - feeNano;
-    if (changeAmountNano > 0){
+    if (changeAmountNano > 0) {
         //console.log("createTxOutputs changeAmountNano", getUtxosListValue(selectedUtxos) , amountNano, feeNano, changeAmountNano);
         var changeBox = new ErgoBoxCandidateBuilder(
             getBoxValueAmount(changeAmountNano),
             Contract.pay_to_address(Address.from_base58(changeAddress)),
             creationHeight);
         const inputsTokens = getTokenListFromUtxos(selectedUtxos);
-        for(const tokId of Object.keys(inputsTokens)){
+        for (const tokId of Object.keys(inputsTokens)) {
             const missingOutputToken = inputsTokens[tokId] - tokenAmountToSend[tokens.findIndex((tok: { tokenId: string; }) => tok.tokenId === tokId)];
             if (missingOutputToken > 0) {
                 changeBox.add_token(TokenId.from_str(tokId),
                     TokenAmount.from_i64(I64.from_str(missingOutputToken.toString())
-                ));
+                    ));
             }
         }
         outputCandidates.add(changeBox.build());
@@ -302,7 +302,7 @@ export async function getTxReducedB64Safe(json: any, inputs: any, dataInputs = [
     return [txId, ergoPayTx.match(/.{1,1000}/g)];
 }
 
-async function getTxReduced(json: any, inputs: any, dataInputs: any): Promise<[string, ReducedTransaction]>  {
+async function getTxReduced(json: any, inputs: any, dataInputs: any): Promise<[string, ReducedTransaction]> {
     // build ergolib objects from json
     //console.log("getTxReduced", json, inputs, dataInputs);
     const unsignedTx = UnsignedTransaction.from_json(JSONBigInt.stringify(json));
@@ -313,7 +313,7 @@ async function getTxReduced(json: any, inputs: any, dataInputs: any): Promise<[s
     const pre_header = PreHeader.from_block_header(block_headers.get(0));
 
     const ctx = new ErgoStateContext(pre_header, block_headers);
-    return [unsignedTx.id().to_str(), ReducedTransaction.from_unsigned_tx(unsignedTx,inputBoxes,inputDataBoxes,ctx)];
+    return [unsignedTx.id().to_str(), ReducedTransaction.from_unsigned_tx(unsignedTx, inputBoxes, inputDataBoxes, ctx)];
 }
 
 export function getBestUtxoSC(utxos: any[], tokenId: string, tokenAmount: number): any {
@@ -322,7 +322,7 @@ export function getBestUtxoSC(utxos: any[], tokenId: string, tokenAmount: number
         const u_parsed = parseUtxo(utxos[u])
         // check that both SigUSD and OWL tokens are present for SC utxo
         const tokenIds = u_parsed.assets.map((val: any) => val.tokenId)
-        if (tokenIds.indexOf(TOKENID_TEST) == -1 || 
+        if (tokenIds.indexOf(TOKENID_FAKE_OWL) == -1 ||
             tokenIds.indexOf(TOKENID_FAKE_SIGUSD) == -1) {
             continue
         }

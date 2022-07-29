@@ -1,17 +1,17 @@
 import { Request, Response } from "express"
 import logger from "../logger"
-import {v4 as uuidv4} from 'uuid'
+import { v4 as uuidv4 } from 'uuid'
 
 import {
   NANOERG_TO_ERG,
   FEE_VALUE,
   MIN_BOX_VALUE,
-  TOKENID_TEST,
+  TOKENID_FAKE_OWL,
   TOKENID_FAKE_WITNESS,
   TOKENID_FAKE_LP,
   TEST_GAME_WITNESS_CONTRACT_ADDRESS,
   TEST_HOUSE_CONTRACT_ADDRESS,
-  TEST_RESULT_CONTRACT_ADDRESS
+  TEST_ROULETTE_RESULT_CONTRACT_ADDRESS
 } from "../constants/ergo"
 
 import {
@@ -34,7 +34,7 @@ import {
   I64,
   NonMandatoryRegisterId,
   TokenAmount,
-  TokenId, 
+  TokenId,
   Constant
 } from '../../pkg-nodejs/ergo_lib_wasm'
 
@@ -94,25 +94,25 @@ rouletteGame = {
 }
 */
 
-const amountToSendFloat = parseFloat(String(MIN_BOX_VALUE/NANOERG_TO_ERG));
+const amountToSendFloat = parseFloat(String(MIN_BOX_VALUE / NANOERG_TO_ERG));
 
 export default class RouletteController {
-  static async BetTx(req: Request, res:Response): Promise<void> {
+  static async BetTx(req: Request, res: Response): Promise<void> {
     const profiler = logger.startTimer();
     const uuid = uuidv4()
-    const rouletteLogger = logger.child({ request_id: `${uuid}` });
+    const rouletteLogger = logger.child({ session_id: `${uuid}` });
     let boardRequest: string = ""
     let utxos: string = ""
-    
+
     try {
       boardRequest = JSON.stringify(req.body.board)
-    } catch(e) {
+    } catch (e) {
       console.log(e)
     }
 
     try {
       utxos = JSON.stringify(req.body.utxos)
-    } catch(e) {
+    } catch (e) {
       console.log(e)
     }
 
@@ -153,7 +153,7 @@ export default class RouletteController {
       {
         amount: 1,
         decimals: '0',
-        name: "Fake Witness Token",
+        name: "GameNft",
         tokenId: TOKENID_FAKE_WITNESS
       }
     ]
@@ -162,27 +162,33 @@ export default class RouletteController {
       {
         amount: housePayout,
         decimals: '0',
-        name: "NO TESTING TOKENS",
-        tokenId: TOKENID_TEST
+        name: "Test Owl Fake",
+        tokenId: TOKENID_FAKE_OWL
+      },
+      {
+        amount: 100000000,
+        decimals: '0',
+        name: "Test Owl LP",
+        tokenId: TOKENID_FAKE_LP
       }
     ]
 
     // Game Witness Input UTXO
     const gameWitnessUtxos = await getUtxosForSelectedInputs([TEST_GAME_WITNESS_CONTRACT_ADDRESS],
-                                                             amountToSendFloat,
-                                                             gameWitnessTokens,
-                                                             [1]);
+      amountToSendFloat,
+      gameWitnessTokens,
+      [1]);
 
     // House Contract Input UTXO
     const houseContractUtxos = await getUtxosForSelectedInputs([TEST_HOUSE_CONTRACT_ADDRESS],
-                                                               amountToSendFloat,
-                                                               houseContractTokens,
-                                                               [housePayout]);
+      amountToSendFloat,
+      houseContractTokens,
+      [housePayout, 100000000]);
 
     const creationHeight = await currentHeight();
     const houseResultValue = BigInt(MIN_BOX_VALUE)
-    const betValue = BigInt(MIN_BOX_VALUE/2)
-    const feeBoxValue =  BigInt(FEE_VALUE)
+    const betValue = BigInt(MIN_BOX_VALUE)
+    const feeBoxValue = BigInt(FEE_VALUE)
 
     let inputUtxos = new Array()
     let outputUtxos = new Array()
@@ -197,49 +203,49 @@ export default class RouletteController {
     const outputCandidates = ErgoBoxCandidates.empty();
 
     let gameWitnessBox = new ErgoBoxCandidateBuilder(
-        BoxValue.from_i64(I64.from_str(gameWitnessUtxos[0].value)),
-        Contract.pay_to_address(Address.from_base58(TEST_GAME_WITNESS_CONTRACT_ADDRESS)),
-        creationHeight);
+      BoxValue.from_i64(I64.from_str(gameWitnessUtxos[0].value)),
+      Contract.pay_to_address(Address.from_base58(TEST_GAME_WITNESS_CONTRACT_ADDRESS)),
+      creationHeight);
 
-    gameWitnessBox.add_token(TokenId.from_str(TOKENID_FAKE_WITNESS),
-      TokenAmount.from_i64(I64.from_str("1")
-    ));
+    gameWitnessBox.add_token(TokenId.from_str(gameWitnessUtxos[0].assets[0].tokenId.toString()),
+      TokenAmount.from_i64(I64.from_str(gameWitnessUtxos[0].assets[0].amount.toString())
+      ));
 
     outputCandidates.add(gameWitnessBox.build());
 
     // prepare house contract
     const houseContractBox = new ErgoBoxCandidateBuilder(
-        BoxValue.from_i64(I64.from_str(houseContractUtxos[0].value)),
-        Contract.pay_to_address(Address.from_base58(TEST_HOUSE_CONTRACT_ADDRESS)),
-        creationHeight)
+      BoxValue.from_i64(I64.from_str(houseContractUtxos[0].value)),
+      Contract.pay_to_address(Address.from_base58(TEST_HOUSE_CONTRACT_ADDRESS)),
+      creationHeight)
 
     // Keep the same LP Tokens in Assets[0]
     houseContractBox.add_token(TokenId.from_str(TOKENID_FAKE_LP),
-        TokenAmount.from_i64(I64.from_str(houseContractUtxos[0].assets[0].amount.toString())
-    ))
-    
+      TokenAmount.from_i64(I64.from_str(houseContractUtxos[0].assets[0].amount.toString())
+      ))
+
     // deduct total OWL multiplier from Assets[1]
     let owlRemainder: number = Number(houseContractUtxos[0].assets[1].amount)
     owlRemainder = owlRemainder - housePayout
     if (owlRemainder > 0) {
-      houseContractBox.add_token(TokenId.from_str(TOKENID_TEST),
-          TokenAmount.from_i64(I64.from_str(owlRemainder.toString())
-      ))
+      houseContractBox.add_token(TokenId.from_str(TOKENID_FAKE_OWL),
+        TokenAmount.from_i64(I64.from_str(owlRemainder.toString())
+        ))
     }
 
     // Add remaining untouched tokens to houseContractBox if they exists
     houseContractUtxos[0].assets.forEach((element: any) => {
-      if (element.tokenId !== TOKENID_FAKE_LP && element.tokenId !== TOKENID_TEST) {
+      if (element.tokenId !== TOKENID_FAKE_LP && element.tokenId !== TOKENID_FAKE_OWL) {
         houseContractBox.add_token(TokenId.from_str(element.tokenId),
           TokenAmount.from_i64(I64.from_str(element.amount.toString())
-        ))
+          ))
       }
     });
-    
+
     outputCandidates.add(houseContractBox.build());
 
     // prepare result contract(s)
-    let boxValue = BigInt(MIN_BOX_VALUE / 2)
+    let boxValue: BigInt
     rouletteGame.bets.forEach((bet: any, index: number) => {
       if (index === 0) {
         boxValue = betValue + houseResultValue
@@ -248,14 +254,14 @@ export default class RouletteController {
       }
       const resultContractBox = new ErgoBoxCandidateBuilder(
         BoxValue.from_i64(I64.from_str(boxValue.toString())),
-        Contract.pay_to_address(Address.from_base58(TEST_RESULT_CONTRACT_ADDRESS)),
+        Contract.pay_to_address(Address.from_base58(TEST_ROULETTE_RESULT_CONTRACT_ADDRESS)),
         creationHeight)
 
       // OWL player bet amount + house multiplier
       const houseEscrow = Number(bet.amount) + Number(bet.amount * bet.multiplier)
-      resultContractBox.add_token(TokenId.from_str(TOKENID_TEST),
+      resultContractBox.add_token(TokenId.from_str(TOKENID_FAKE_OWL),
         TokenAmount.from_i64(I64.from_str(houseEscrow.toString())
-      ))
+        ))
 
       // Set Registers
       resultContractBox.set_register_value(NonMandatoryRegisterId.R4, Constant.from_i32(Number(bet.r4)))
@@ -271,43 +277,43 @@ export default class RouletteController {
     let totalErg: number = 0
     let inputAssets: any = []
     outputUtxos.forEach((box: any) => {
-        totalErg = totalErg + Number(box.value)
-        box.assets.forEach((asset: any) => {
-            let found = false
-            inputAssets.forEach((inputAsset: any, index: number) => {
-                if (asset.tokenId == inputAsset.tokenId) {
-                    found = true
-                    inputAssets[index].amount = Number(inputAssets[index].amount) + Number(asset.amount)
-                }
-            })
-            if (!found) {
-                inputAssets.push(asset)
-            }
+      totalErg = totalErg + Number(box.value)
+      box.assets.forEach((asset: any) => {
+        let found = false
+        inputAssets.forEach((inputAsset: any, index: number) => {
+          if (asset.tokenId == inputAsset.tokenId) {
+            found = true
+            inputAssets[index].amount = Number(inputAssets[index].amount) + Number(asset.amount)
+          }
         })
+        if (!found) {
+          inputAssets.push(asset)
+        }
+      })
     })
     // calculate total ERG change Amount
     const totalBetValue = betValue * BigInt(rouletteGame.bets.length)
     const changeBoxValue = BigInt(totalErg) - houseResultValue - feeBoxValue - totalBetValue;
     let changeBox = new ErgoBoxCandidateBuilder(
-        BoxValue.from_i64(I64.from_str(changeBoxValue.toString())),
-        Contract.pay_to_address(Address.from_base58(recipient)),
-        creationHeight);
+      BoxValue.from_i64(I64.from_str(changeBoxValue.toString())),
+      Contract.pay_to_address(Address.from_base58(recipient)),
+      creationHeight);
 
     // calculate final token balances for the changeBox
     let senderOWLRemainder: number = 0
     inputAssets.forEach((asset: any) => {
-        if (asset.tokenId === TOKENID_TEST) {
-            senderOWLRemainder = Number(asset.amount) - Number(rouletteGame.totalWager)
-            if (senderOWLRemainder !== 0) {
-              changeBox.add_token(TokenId.from_str(TOKENID_TEST),
-                TokenAmount.from_i64(I64.from_str(senderOWLRemainder.toString())
-              ));
-            }
-        } else {
-            changeBox.add_token(TokenId.from_str(asset.tokenId),
-            TokenAmount.from_i64(I64.from_str(asset.amount.toString())
-        ));
+      if (asset.tokenId === TOKENID_FAKE_OWL) {
+        senderOWLRemainder = Number(asset.amount) - Number(rouletteGame.totalWager)
+        if (senderOWLRemainder !== 0) {
+          changeBox.add_token(TokenId.from_str(TOKENID_FAKE_OWL),
+            TokenAmount.from_i64(I64.from_str(senderOWLRemainder.toString())
+            ));
         }
+      } else {
+        changeBox.add_token(TokenId.from_str(asset.tokenId),
+          TokenAmount.from_i64(I64.from_str(asset.amount.toString())
+          ));
+      }
     })
 
     outputCandidates.add(changeBox.build());
@@ -323,26 +329,34 @@ export default class RouletteController {
     let txId: string | RegExpMatchArray | null = ""
     let txReducedB64safe: string | RegExpMatchArray | null = ""
     try {
-        [txId, txReducedB64safe] = await getTxReducedB64Safe(jsonUnsignedTx, inputUtxos);
-    } catch(e) {
-        console.log("exception caught from getTxReducedB64Safe", e)
+      [txId, txReducedB64safe] = await getTxReducedB64Safe(jsonUnsignedTx, inputUtxos);
+    } catch (e) {
+      console.log("exception caught from getTxReducedB64Safe", e)
     }
 
     jsonUnsignedTx.inputs = inputUtxos
 
     // set extension: {}
     for (const i in jsonUnsignedTx.inputs) {
-        jsonUnsignedTx.inputs[i].extension = {}
+      jsonUnsignedTx.inputs[i].extension = {}
+    }
+
+    // convert output values and token amounts to strings
+    for (const i in jsonUnsignedTx.outputs) {
+      jsonUnsignedTx.outputs[i].value = jsonUnsignedTx.outputs[i].value.toString()
+      for (const j in jsonUnsignedTx.outputs[i].assets) {
+        jsonUnsignedTx.outputs[i].assets[j].amount = jsonUnsignedTx.outputs[i].assets[j].amount.toString()
+      }
     }
 
     profiler.done({
       url: '/api/v1/roulette/bet-tx',
       hostname: `${rouletteLogger.defaultMeta.hostname}`,
-      request_id: `${uuid}`,
+      session_id: `${uuid}`,
       tx_id: `${txId}`,
       code: 200
     })
-    res.status(200).json(jsonUnsignedTx)
+    res.status(200).json({ sessionId: uuid, unsignedTx: jsonUnsignedTx })
 
   }
 }
