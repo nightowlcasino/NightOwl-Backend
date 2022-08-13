@@ -427,7 +427,6 @@ export default class RouletteController {
     wins = bets.filter((bet: any) => {
       switch (bet.r4) {
         case Subgame.RED_BLACK: {
-          console.log("inside red_black")
           if (num == 0) {
             return false
           }
