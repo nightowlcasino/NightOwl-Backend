@@ -40,7 +40,11 @@ import {
 
 import { currentHeight } from '../ergo/explorer';
 import { getTokenListFromUtxos, parseUtxo, enrichUtxos } from '../ergo/utxos';
-import { RouletteGame } from "../models/roulettegame"
+import {
+  RouletteGame,
+  Bet,
+  Subgame,
+} from "../models/roulettegame"
 
 /*
 rouletteGame = {
@@ -95,6 +99,14 @@ rouletteGame = {
 */
 
 const amountToSendFloat = parseFloat(String(MIN_BOX_VALUE / NANOERG_TO_ERG));
+const betTxUrl = '/api/v1/roulette/bet-tx'
+const calcWinnerUrl = '/api/v1/roulette/calculate-winner'
+const game = 'roulette'
+
+function getErrorMessage(error: unknown) {
+  if (error instanceof Error) return error.message
+  return String(error)
+}
 
 export default class RouletteController {
   static async BetTx(req: Request, res: Response): Promise<void> {
@@ -117,8 +129,9 @@ export default class RouletteController {
     }
 
     rouletteLogger.info('', {
-      url: '/api/v1/roulette/bet-tx',
-      game: "roulette",
+      url: betTxUrl,
+      hostname: `${rouletteLogger.defaultMeta.hostname}`,
+      game: game,
       sender_addr: `${req.body.senderAddr}`,
       sender_bets: `${boardRequest}`,
       utxos: `${utxos}`
@@ -350,13 +363,207 @@ export default class RouletteController {
     }
 
     profiler.done({
-      url: '/api/v1/roulette/bet-tx',
+      url: betTxUrl,
       hostname: `${rouletteLogger.defaultMeta.hostname}`,
+      game: game,
       session_id: `${uuid}`,
       tx_id: `${txId}`,
       code: 200
     })
     res.status(200).json({ sessionId: uuid, unsignedTx: jsonUnsignedTx })
 
+  }
+
+  static async CalcWinner(req: Request, res: Response): Promise<void> {
+    const profiler = logger.startTimer();
+
+    let board = {} as RouletteGame
+    let randNum: number = -1
+    let winAmount: number = 0
+
+    try {
+      board = req.body.board as RouletteGame
+      randNum = Number(req.body.randomNumber)
+    } catch (e) {
+      logger.error('failed to parse RouletteGame', {
+        url: calcWinnerUrl,
+        hostname: `${logger.defaultMeta.hostname}`,
+        game: game,
+        session_id: `${req.body.sessionId}`,
+        error: getErrorMessage(e)
+      })
+    }
+
+    logger.info('', {
+      url: calcWinnerUrl,
+      hostname: `${logger.defaultMeta.hostname}`,
+      game: game,
+      session_id: `${req.body.sessionId}`,
+      random_number: `${req.body.randomNumber}`,
+      sender_bets: `${JSON.stringify(board.bets)}`
+    })
+
+    console.log(board.bets)
+
+    const [wins, winner] = RouletteController.checkWinner(randNum, board.bets)
+    if (winner) {
+      winAmount = RouletteController.calcTotalWinnings(wins)
+    }
+
+    console.log(wins)
+
+    profiler.done({
+      url: calcWinnerUrl,
+      hostname: `${logger.defaultMeta.hostname}`,
+      game: game,
+      session_id: `${req.body.sessionId}`,
+      winning_bets: wins,
+      win_amount: winAmount,
+      code: 200
+    })
+    res.status(200).json({ winner: winner, amount: winAmount })
+  }
+
+  // this will check all bets that won and remove losing bets from the array
+  static checkWinner(num: number, bets: Bet[]): [Bet[], Boolean] {
+    let wins: Bet[]
+
+    wins = bets.filter((bet: any) => {
+      switch (bet.r4) {
+        case Subgame.RED_BLACK: {
+          console.log("inside red_black")
+          if (num == 0) {
+            return false
+          }
+          // 0 == red
+          // 1 == black
+          if (bet.r5 == 0) {
+            if (num == 1 || num == 3 || num == 5 || num == 7 || num == 9 ||
+              num == 12 || num == 14 || num == 16 || num == 18 ||
+              num == 19 || num == 21 || num == 23 || num == 25 || num == 27 ||
+              num == 30 || num == 32 || num == 34 || num == 36) {
+              return true
+            } else {
+              return false
+            }
+          } else if (bet.r5 == 1) {
+            if (num == 2 || num == 4 || num == 6 || num == 8 ||
+              num == 10 || num == 11 || num == 13 || num == 15 || num == 17 ||
+              num == 20 || num == 22 || num == 24 || num == 26 ||
+              num == 28 || num == 29 || num == 31 || num == 33 || num == 35) {
+              return true
+            } else {
+              return false
+            }
+          }
+          break;
+        }
+        case Subgame.ODD_EVEN:
+          if (num == 0) {
+            return false
+          }
+          // 0 == even
+          // 1 == odd
+          if (bet.r5 % 2 == num % 2) {
+            return true
+          } else {
+            return false
+          }
+          break;
+        case Subgame.LOW_UPPER_HALF:
+          if (num == 0) {
+            return false
+          }
+          // 10 (1-18)
+          // 28 (19-36)
+          if (bet.r5 == 10) {
+            if (num >= 1 && num <= 18) {
+              return true
+            } else {
+              return false
+            }
+          } else if (bet.r5 == 28) {
+            if (num >= 19 && num <= 36) {
+              return true
+            } else {
+              return false
+            }
+          }
+        case Subgame.COLUMNS:
+          if (num == 0) {
+            return false
+          }
+          // 1 (1st column)
+          // 2 (2nd column)
+          // 3 (3rd column)
+          if (bet.r5 == 1) {
+            if (num == 3 || num == 6 || num == 9 || num == 12 ||
+              num == 15 || num == 18 || num == 21 || num == 24 ||
+              num == 27 || num == 30 || num == 33 || num == 36) {
+              return true
+            } else {
+              return false
+            }
+          } else if (bet.r5 == 2) {
+            if (num == 2 || num == 5 || num == 8 || num == 11 ||
+              num == 14 || num == 17 || num == 20 || num == 23 ||
+              num == 26 || num == 29 || num == 32 || num == 35) {
+              return true
+            } else {
+              return false
+            }
+          } else if (bet.r5 == 3) {
+            if (num == 1 || num == 4 || num == 7 || num == 10 ||
+              num == 13 || num == 16 || num == 19 || num == 22 ||
+              num == 25 || num == 28 || num == 31 || num == 34) {
+              return true
+            } else {
+              return false
+            }
+          }
+        case Subgame.LOWER_MID_UPPER_3RD:
+          if (num == 0) {
+            return false
+          }
+          // 6 (1-12)
+          // 18 (13-24)
+          // 30 (25-36)
+          if (bet.r5 == 6) {
+            if (num >= 1 && num <= 12) {
+              return true
+            } else {
+              return false
+            }
+          } else if (bet.r5 == 18) {
+            if (num >= 13 && num <= 24) {
+              return true
+            } else {
+              return false
+            }
+          } else if (bet.r5 == 30) {
+            if (num >= 25 && num <= 36) {
+              return true
+            } else {
+              return false
+            }
+          }
+        case Subgame.EXACT:
+          if (bet.r5 == num) {
+            return true
+          } else {
+            return false
+          }
+      }
+    })
+
+    return [wins, wins.length > 0]
+  }
+
+  static calcTotalWinnings(bets: Bet[]): number {
+    let winnings: number = 0
+    bets.forEach((bet: any) => {
+      winnings += (bet.amount * bet.multiplier + bet.amount)
+    })
+    return winnings
   }
 }
