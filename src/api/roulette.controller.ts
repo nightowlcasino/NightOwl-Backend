@@ -403,14 +403,10 @@ export default class RouletteController {
       sender_bets: `${JSON.stringify(board.bets)}`
     })
 
-    console.log(board.bets)
-
     const [wins, winner] = RouletteController.checkWinner(randNum, board.bets)
     if (winner) {
       winAmount = RouletteController.calcTotalWinnings(wins)
     }
-
-    console.log(wins)
 
     profiler.done({
       url: calcWinnerUrl,
