@@ -3,6 +3,6 @@ import LiquidityController from "./liquidity.controller";
 
 const router = express.Router();
 
-router.route("/max-bet").get(LiquidityController.MaxBet)
+router.route("/max-payout").get(LiquidityController.MaxPayout)
 
 export default router
