@@ -1,11 +1,11 @@
 import { Request, Response } from "express"
 import logger from "../logger"
 
-const lpAmountUrl = '/api/v1/liquidity/max-bet'
+const lpAmountUrl = '/api/v1/liquidity/max-payout'
 
 export default class LiquidityController {
   // return the total liquidity pool amount * 1.5% which should be the max allowable winnable payout
-  static async MaxBet(req: Request, res: Response): Promise<void> {
+  static async MaxPayout(req: Request, res: Response): Promise<void> {
     const profiler = logger.startTimer();
 
     logger.info('', {
