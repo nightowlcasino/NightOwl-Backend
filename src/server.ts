@@ -2,6 +2,7 @@ import express, { Application, Request, Response, NextFunction } from "express"
 import cors from "cors"
 import bodyparser from "body-parser"
 import leaderboard from "./api/leaderboard.route"
+import liquidity from "./api/liquidity.route"
 import ergopay from "./api/ergopay.route"
 import ergonode from "./api/ergonode.route"
 import swap from "./api/swap.route"
@@ -23,6 +24,7 @@ app.use(function (req: Request, res: Response, next) {
 app.use(express.static(path.join(__dirname, '../client/build')))
 
 app.use("/api/v1/leaderboard", leaderboard)
+app.use("/api/v1/liquidity", liquidity)
 app.use("/api/v1/ergopay", ergopay)
 app.use("/api/v1/swap", swap)
 app.use("/api/v1/roulette", roulette)
