@@ -3,6 +3,6 @@ import LeaderboardController from "./leaderboard.controller";
 
 const router = express.Router();
 
-router.route("/").get(LeaderboardController.apiGetLeaderboard)
+router.route("/all").get(LeaderboardController.GetAllGames)
 
 export default router

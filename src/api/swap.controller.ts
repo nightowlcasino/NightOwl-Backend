@@ -38,6 +38,12 @@ import { v4 as uuidv4 } from 'uuid'
 
 const feeFloat = parseFloat(String(FEE_VALUE / NANOERG_TO_ERG));
 const amountToSendFloat = parseFloat(String(MIN_BOX_VALUE / NANOERG_TO_ERG));
+const swapSigUrl = '/api/v1/swap/sigusd'
+
+function getErrorMessage(error: unknown) {
+    if (error instanceof Error) return error.message
+    return String(error)
+}
 
 export default class SwapController {
 
@@ -46,10 +52,30 @@ export default class SwapController {
         const uuid = uuidv4()
         const swapOwlLogger = logger.child({ request_id: `${uuid}` });
         swapOwlLogger.info('', {
-            url: '/api/v1/swap/sigusd',
+            url: swapSigUrl,
             sender_addr: `${req.body.senderAddr}`,
             sender_amnt: `${req.body.amnt}`,
         });
+
+        // validate payload variables
+        try {
+            if (req.body.amnt == null) {
+                throw new Error("swap amount was null")
+            }
+            if (req.body.senderAddr == null) {
+                throw new Error("sender address was null")
+            }
+        } catch (e) {
+            profiler.done({
+                hostname: `${swapOwlLogger.defaultMeta.hostname}`,
+                request_id: `${uuid}`,
+                url: swapSigUrl,
+                error: getErrorMessage(e),
+                code: 400
+            })
+            res.status(400).json(getErrorMessage(e))
+            return
+        }
 
         const recipient = req.body.senderAddr
         const amountToSend: number = req.body.amnt

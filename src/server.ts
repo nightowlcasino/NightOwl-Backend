@@ -33,4 +33,4 @@ app.get("*", (req: Request, res: Response) => {
   res.sendFile(path.join(__dirname, '../client/build/index.html'))
 })
 
-export default app
+export default app;
