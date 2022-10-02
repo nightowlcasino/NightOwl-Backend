@@ -1,4 +1,6 @@
-import express, { Application, Request, Response, NextFunction } from "express"
+import express, { Application, Request, Response } from "express"
+import { spawn, Thread, Worker } from "threads"
+import { LBWorker } from "./workers/leaderboard"
 import cors from "cors"
 import bodyparser from "body-parser"
 import leaderboard from "./api/leaderboard.route"
@@ -8,8 +10,25 @@ import ergonode from "./api/ergonode.route"
 import swap from "./api/swap.route"
 import roulette from "./api/roulette.route"
 import path from "path"
+import logger from "./logger"
 
-const app: Application = express()
+const app: Application = express();
+
+// spawn leaderboard worker thread
+(async () => {
+  const lbWorker = await spawn<LBWorker>(new Worker("./workers/leaderboard"))
+  try {
+    lbWorker.values().subscribe((log: any) => {
+      logger.info(`${log}`)
+    })
+    await lbWorker.startLeaderboard()
+  } catch (error) {
+    logger.error("leaderboard worker thread errored:", error)
+  } finally {
+    lbWorker.finish()
+    await Thread.terminate(lbWorker)
+  }
+})();
 
 app.use(bodyparser.json());
 app.use(bodyparser.urlencoded({

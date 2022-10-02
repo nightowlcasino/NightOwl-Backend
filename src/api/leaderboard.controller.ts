@@ -1,11 +1,12 @@
 import LeaderboardDAO from "../dao/leaderboardDAO"
 import { Request, Response } from "express"
 import redisClient from "../redis/redis"
-import { Leaderboard } from "../models/leaderboard"
+import { Leaderboard, WinningBet } from "../models/leaderboard"
 import logger from "../logger"
 import { v4 as uuidv4 } from 'uuid'
 
 const leaderboardAllUrl = "/api/v1/leaderboard/all"
+const leaderboardTestUrl = "/api/v1/leaderboard/test"
 
 const testData = [
   {
@@ -69,22 +70,6 @@ export default class LeaderboardController {
 
     const result = await redisClient.get("leaderboard:all");
     if (result === null) {
-      // fill in test data for now
-      const lb = new Array<Leaderboard>()
-      testData.forEach((val) => {
-        const topspot: Leaderboard = new Leaderboard(
-          val.address,
-          val.amount,
-          val.txId,
-        )
-        lb.push(topspot)
-      })
-
-      const result = await redisClient.set("leaderboard:all", JSON.stringify(lb))
-      if (result !== "OK") {
-        leaderboardLogger.info('failed to write leaderboard:all to redis db')
-      }
-
       profiler.done({
         hostname: `${leaderboardLogger.defaultMeta.hostname}`,
         request_id: `${uuid}`,
@@ -102,5 +87,37 @@ export default class LeaderboardController {
       code: 200
     })
     res.status(200).json(JSON.parse(result))
+  }
+
+  static async TestCall(req: Request, res: Response): Promise<void> {
+
+    const profiler = logger.startTimer();
+    const uuid = uuidv4()
+    const leaderboardLogger = logger.child({ request_id: `${uuid}` });
+
+    let result = await redisClient.get("leaderboard:all:test");
+    if (result === null) {
+      // fill in test data for now
+      const lb = new Leaderboard()
+      testData.forEach((val) => {
+        const bet: WinningBet = WinningBet.fromJson(val)
+        lb.addBet(bet)
+      })
+
+      result = await redisClient.set("leaderboard:all:test", JSON.stringify(lb))
+      if (result !== "OK") {
+        leaderboardLogger.info('failed to write leaderboard:all:test to redis db')
+      }
+
+      result = await redisClient.get("leaderboard:all:test");
+    }
+
+    profiler.done({
+      hostname: `${leaderboardLogger.defaultMeta.hostname}`,
+      request_id: `${uuid}`,
+      url: leaderboardTestUrl,
+      code: 200
+    })
+    res.status(200).json(JSON.parse(result || '{}'))
   }
 }

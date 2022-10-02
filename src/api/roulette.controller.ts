@@ -38,8 +38,9 @@ import {
   Constant
 } from '../../pkg-nodejs/ergo_lib_wasm'
 
-import { currentHeight } from '../ergo/explorer';
-import { getTokenListFromUtxos, parseUtxo, enrichUtxos } from '../ergo/utxos';
+import { currentHeight } from '../ergo/explorer'
+import { getErrorMessage } from '../utils/error'
+import { getTokenListFromUtxos, parseUtxo, enrichUtxos } from '../ergo/utxos'
 import {
   RouletteGame,
   Bet,
@@ -102,11 +103,6 @@ const amountToSendFloat = parseFloat(String(MIN_BOX_VALUE / NANOERG_TO_ERG));
 const betTxUrl = '/api/v1/roulette/bet-tx'
 const calcWinnerUrl = '/api/v1/roulette/calculate-winner'
 const game = 'roulette'
-
-function getErrorMessage(error: unknown) {
-  if (error instanceof Error) return error.message
-  return String(error)
-}
 
 export default class RouletteController {
   static async BetTx(req: Request, res: Response): Promise<void> {
