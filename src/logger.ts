@@ -31,7 +31,7 @@ const logger = winston.createLogger({
   level: level(),
   levels,
   format,
-  defaultMeta: { hostname: `${hostname}` },
+  defaultMeta: { hostname: `${hostname}`, app: "nightowl-backend" },
   transports,
 })
 
