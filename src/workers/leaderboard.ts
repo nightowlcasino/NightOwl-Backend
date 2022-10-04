@@ -1,6 +1,5 @@
 import { Observable, Subject } from "threads/observable"
 import { expose } from "threads/worker"
-import logger from "../logger";
 import redisClient from "../redis/redis"
 import { get } from '../utils/rest'
 import { currentHeight } from '../ergo/explorer'

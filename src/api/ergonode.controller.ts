@@ -11,6 +11,8 @@ const nodeUser = process.env.NODE_USER || ""
 const nodePass = process.env.NODE_PASS || ""
 const apikey = process.env.NODE_APIKEY || ""
 
+const postTxUrl = "/api/v1/transactions"
+
 function checkResponseStatus(res: any) {
   if (res.ok) {
     return res
@@ -23,14 +25,20 @@ export default class ErgoNodeController {
   static async SendTx(req: Request, res: Response): Promise<void> {
     const profiler = logger.startTimer();
     const uuid = uuidv4()
-    const sendTxLogger = logger.child({ session_id: `${req.body.sessionId}` });
     let txResp: string = ""
 
-    sendTxLogger.info('', {
-      url: '/api/v1/transactions',
-      game: `${req.body.game}`,
+    logger.info({
+      message: 'sending signed tx to ergo node',
+      session_id: `${req.body.sessionId}`,
+      tx_id: `${req.body.tx.id}`,
       sender_addr: `${req.body.senderAddr}`,
-      tx_id: `${req.body.tx.id}`
+      labels: {
+        game: `${req.body.game}`,
+        hostname: logger.defaultMeta.hostname,
+        app: logger.defaultMeta.app,
+        env: logger.defaultMeta.env,
+        url: postTxUrl,
+      }
     });
 
     //const resp = await postTx(NIGHTOWL_EXPLORER_API_ADDRESS+"transactions", req.body.tx)
@@ -51,23 +59,34 @@ export default class ErgoNodeController {
       .then(json => {
         txResp = json
         profiler.done({
-          hostname: `${sendTxLogger.defaultMeta.hostname}`,
+          message: 'POST request to ergo node was successful',
           session_id: `${req.body.sessionId}`,
           tx_id: `${txResp}`,
-          code: 200,
-          url: '/api/v1/transactions'
+          labels: {
+            code: 200,
+            hostname: logger.defaultMeta.hostname,
+            app: logger.defaultMeta.app,
+            env: logger.defaultMeta.env,
+            url: postTxUrl,
+          }
         })
         res.status(200).json(`${txResp}`)
         return
       })
       .catch(err => {
         profiler.done({
-          hostname: `${sendTxLogger.defaultMeta.hostname}`,
+          message: 'POST request to ergo node failed',
           session_id: `${req.body.sessionId}`,
           tx_id: `${req.body.tx.id}`,
           resp: `${err}`,
-          code: 500,
-          url: '/api/v1/transactions'
+          level: "error",
+          labels: {
+            code: 500,
+            hostname: logger.defaultMeta.hostname,
+            app: logger.defaultMeta.app,
+            env: logger.defaultMeta.env,
+            url: postTxUrl,
+          }
         })
         res.status(500).json("node failed to send tx")
         return

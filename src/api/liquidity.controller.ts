@@ -8,18 +8,29 @@ export default class LiquidityController {
   static async MaxPayout(req: Request, res: Response): Promise<void> {
     const profiler = logger.startTimer();
 
-    logger.info('', {
-      url: lpAmountUrl,
-      hostname: `${logger.defaultMeta.hostname}`
+    logger.debug({
+      message: 'liquidity max-payout called',
+      labels: {
+        hostname: logger.defaultMeta.hostname,
+        app: logger.defaultMeta.app,
+        env: logger.defaultMeta.env,
+        url: lpAmountUrl,
+      }
     })
 
 
     profiler.done({
-      url: lpAmountUrl,
-      hostname: `${logger.defaultMeta.hostname}`,
+      message: 'max-payout amount successully calculated',
+      level: 'debug',
       liquidity_amount: 10000000,
       max_payout: 150000,
-      code: 200
+      labels: {
+        hostname: logger.defaultMeta.hostname,
+        app: logger.defaultMeta.app,
+        env: logger.defaultMeta.env,
+        url: lpAmountUrl,
+        code: 200
+      }
     })
     res.status(200).json({ amount: 150000 })
 
