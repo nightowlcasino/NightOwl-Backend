@@ -108,29 +108,64 @@ export default class RouletteController {
   static async BetTx(req: Request, res: Response): Promise<void> {
     const profiler = logger.startTimer();
     const uuid = uuidv4()
-    const rouletteLogger = logger.child({ session_id: `${uuid}` });
     let boardRequest: string = ""
     let utxos: string = ""
 
     try {
       boardRequest = JSON.stringify(req.body.board)
     } catch (e) {
-      console.log(e)
+      logger.error({
+        message: 'board value incorrect from roulette bet build request',
+        session_id: uuid,
+        sender_addr: `${req.body.senderAddr}`,
+        error: getErrorMessage(e),
+        labels: {
+          hostname: logger.defaultMeta.hostname,
+          app: logger.defaultMeta.app,
+          env: logger.defaultMeta.env,
+          game: game,
+          url: betTxUrl,
+          code: 500,
+        }
+      });
+      res.status(500).json("board value incorrect")
+      return
     }
 
     try {
       utxos = JSON.stringify(req.body.utxos)
     } catch (e) {
-      console.log(e)
+      logger.error({
+        message: 'utxos value incorrect from roulette bet build request',
+        session_id: uuid,
+        sender_addr: `${req.body.senderAddr}`,
+        error: getErrorMessage(e),
+        labels: {
+          hostname: logger.defaultMeta.hostname,
+          app: logger.defaultMeta.app,
+          env: logger.defaultMeta.env,
+          game: game,
+          url: betTxUrl,
+          code: 500,
+        }
+      });
+      res.status(500).json("utxos value incorrect")
+      return
     }
 
-    rouletteLogger.info('', {
-      url: betTxUrl,
-      hostname: `${rouletteLogger.defaultMeta.hostname}`,
-      game: game,
+    logger.info({
+      message: 'validate roulette bet build tx requested',
+      session_id: uuid,
       sender_addr: `${req.body.senderAddr}`,
-      sender_bets: `${boardRequest}`,
-      utxos: `${utxos}`
+      sender_bets: boardRequest,
+      utxos: utxos,
+      labels: {
+        hostname: logger.defaultMeta.hostname,
+        app: logger.defaultMeta.app,
+        env: logger.defaultMeta.env,
+        game: game,
+        url: betTxUrl,
+      }
     });
 
     const recipient = req.body.senderAddr
@@ -340,7 +375,22 @@ export default class RouletteController {
     try {
       [txId, txReducedB64safe] = await getTxReducedB64Safe(jsonUnsignedTx, inputUtxos);
     } catch (e) {
-      console.log("exception caught from getTxReducedB64Safe", e)
+      logger.error({
+        message: 'exception caught from getTxReducedB64Safe',
+        session_id: uuid,
+        sender_addr: `${req.body.senderAddr}`,
+        error: getErrorMessage(e),
+        labels: {
+          hostname: logger.defaultMeta.hostname,
+          app: logger.defaultMeta.app,
+          env: logger.defaultMeta.env,
+          game: game,
+          url: betTxUrl,
+          code: 500,
+        }
+      });
+      res.status(500).json("exception caught from getTxReducedB64Safe")
+      return
     }
 
     jsonUnsignedTx.inputs = inputUtxos
@@ -359,12 +409,17 @@ export default class RouletteController {
     }
 
     profiler.done({
-      url: betTxUrl,
-      hostname: `${rouletteLogger.defaultMeta.hostname}`,
-      game: game,
-      session_id: `${uuid}`,
+      message: 'unsigned roulette bet tx built successfully',
+      session_id: uuid,
       tx_id: `${txId}`,
-      code: 200
+      labels: {
+        hostname: logger.defaultMeta.hostname,
+        app: logger.defaultMeta.app,
+        env: logger.defaultMeta.env,
+        game: game,
+        url: betTxUrl,
+        code: 200,
+      }
     })
     res.status(200).json({ sessionId: uuid, unsignedTx: jsonUnsignedTx })
 
@@ -381,22 +436,35 @@ export default class RouletteController {
       board = req.body.board as RouletteGame
       randNum = Number(req.body.randomNumber)
     } catch (e) {
-      logger.error('failed to parse RouletteGame', {
-        url: calcWinnerUrl,
-        hostname: `${logger.defaultMeta.hostname}`,
-        game: game,
+      logger.error({
+        message: 'failed to parse RouletteGame',
         session_id: `${req.body.sessionId}`,
-        error: getErrorMessage(e)
+        error: getErrorMessage(e),
+        labels: {
+          hostname: logger.defaultMeta.hostname,
+          app: logger.defaultMeta.app,
+          env: logger.defaultMeta.env,
+          game: game,
+          url: calcWinnerUrl,
+          code: 500,
+        }
       })
+      res.status(500).json("failed to parse RouletteGame")
+      return
     }
 
-    logger.info('', {
-      url: calcWinnerUrl,
-      hostname: `${logger.defaultMeta.hostname}`,
-      game: game,
+    logger.info({
+      message: 'calculate roulette winner called with valid board',
       session_id: `${req.body.sessionId}`,
       random_number: `${req.body.randomNumber}`,
-      sender_bets: `${JSON.stringify(board.bets)}`
+      sender_bets: `${JSON.stringify(board.bets)}`,
+      labels: {
+        hostname: logger.defaultMeta.hostname,
+        app: logger.defaultMeta.app,
+        env: logger.defaultMeta.env,
+        game: game,
+        url: calcWinnerUrl,
+      }
     })
 
     const [wins, winner] = RouletteController.checkWinner(randNum, board.bets)
@@ -405,13 +473,18 @@ export default class RouletteController {
     }
 
     profiler.done({
-      url: calcWinnerUrl,
-      hostname: `${logger.defaultMeta.hostname}`,
-      game: game,
+      message: 'calculate roulette winner call successful',
       session_id: `${req.body.sessionId}`,
       winning_bets: wins,
       win_amount: winAmount,
-      code: 200
+      labels: {
+        hostname: logger.defaultMeta.hostname,
+        app: logger.defaultMeta.app,
+        env: logger.defaultMeta.env,
+        game: game,
+        url: calcWinnerUrl,
+        code: 200,
+      }
     })
     res.status(200).json({ winner: winner, amount: winAmount })
   }

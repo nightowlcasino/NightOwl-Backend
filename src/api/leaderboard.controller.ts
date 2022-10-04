@@ -1,4 +1,3 @@
-import LeaderboardDAO from "../dao/leaderboardDAO"
 import { Request, Response } from "express"
 import redisClient from "../redis/redis"
 import { Leaderboard, WinningBet } from "../models/leaderboard"
@@ -66,25 +65,36 @@ export default class LeaderboardController {
 
     const profiler = logger.startTimer();
     const uuid = uuidv4()
-    const leaderboardLogger = logger.child({ request_id: `${uuid}` });
 
     const result = await redisClient.get("leaderboard:all");
     if (result === null) {
       profiler.done({
-        hostname: `${leaderboardLogger.defaultMeta.hostname}`,
+        message: "GetAllGames call failed",
+        level: "error",
         request_id: `${uuid}`,
-        error: "leaderboard data for all games is missing",
-        code: 500
+        labels: {
+          hostname: logger.defaultMeta.hostname,
+          app: logger.defaultMeta.app,
+          env: logger.defaultMeta.env,
+          url: leaderboardAllUrl,
+          error: "leaderboard data for all games is missing",
+          code: 500
+        }
       })
       res.status(500).json("leaderboard data for all games is missing")
       return
     }
 
     profiler.done({
-      hostname: `${leaderboardLogger.defaultMeta.hostname}`,
+      message: "GetAllGames call successful",
       request_id: `${uuid}`,
-      url: leaderboardAllUrl,
-      code: 200
+      labels: {
+        hostname: logger.defaultMeta.hostname,
+        app: logger.defaultMeta.app,
+        env: logger.defaultMeta.env,
+        url: leaderboardAllUrl,
+        code: 200
+      }
     })
     res.status(200).json(JSON.parse(result))
   }
@@ -93,7 +103,6 @@ export default class LeaderboardController {
 
     const profiler = logger.startTimer();
     const uuid = uuidv4()
-    const leaderboardLogger = logger.child({ request_id: `${uuid}` });
 
     let result = await redisClient.get("leaderboard:all:test");
     if (result === null) {
@@ -106,17 +115,34 @@ export default class LeaderboardController {
 
       result = await redisClient.set("leaderboard:all:test", JSON.stringify(lb))
       if (result !== "OK") {
-        leaderboardLogger.info('failed to write leaderboard:all:test to redis db')
+        logger.error({
+          message: 'failed to write leaderboard:all:test to redis db',
+          request_id: `${uuid}`,
+          labels: {
+            hostname: logger.defaultMeta.hostname,
+            app: logger.defaultMeta.app,
+            env: logger.defaultMeta.env,
+            url: leaderboardTestUrl,
+            code: 500
+          }
+        })
+        res.status(500).json("failed to write leaderboard:all:test to redis db")
+        return
       }
 
       result = await redisClient.get("leaderboard:all:test");
     }
 
     profiler.done({
-      hostname: `${leaderboardLogger.defaultMeta.hostname}`,
+      message: "TestCall call successful",
       request_id: `${uuid}`,
-      url: leaderboardTestUrl,
-      code: 200
+      labels: {
+        hostname: logger.defaultMeta.hostname,
+        app: logger.defaultMeta.app,
+        env: logger.defaultMeta.env,
+        url: leaderboardTestUrl,
+        code: 200
+      }
     })
     res.status(200).json(JSON.parse(result || '{}'))
   }
