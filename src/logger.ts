@@ -4,7 +4,7 @@ import LokiTransport from 'winston-loki'
 
 const hostname = os.hostname()
 const env = process.env.NODE_ENV || 'development'
-const lokiEndpoint = env === 'development' ? 'http://127.0.0.1:3100' : 'https://logs.nightowlcasino.io:3100'
+const lokiEndpoint = env === 'local' ? 'http://127.0.0.1:3100' : 'https://logs.nightowlcasino.io:3100'
 
 const levels = {
   fatal: 0,
