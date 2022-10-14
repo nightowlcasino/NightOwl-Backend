@@ -1,5 +1,6 @@
 import winston from 'winston'
 import os from 'os'
+import { logFmtFormat } from "winston-logfmt";
 import LokiTransport from 'winston-loki'
 
 const hostname = os.hostname()
@@ -16,13 +17,13 @@ const levels = {
 }
 
 const level = () => {
-  const isDevelopment = env === 'development'
+  const isDevelopment = env === 'development' || env === 'local'
   return isDevelopment ? 'debug' : 'info'
 }
 
 const format = winston.format.combine(
   winston.format.timestamp({ format: 'YYYY-MM-DDTHH:mm:ss:ms' }),
-  winston.format.json(),
+  logFmtFormat(),
 )
 
 const transports = [
@@ -47,6 +48,7 @@ logger.add(new LokiTransport({
   host: lokiEndpoint,
   json: true,
   labels: labels,
+  format: format,
   timeout: 30000,
   clearOnError: true,
   onConnectionError: (err) => console.error(err)

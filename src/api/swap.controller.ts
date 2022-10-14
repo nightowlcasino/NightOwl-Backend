@@ -53,12 +53,7 @@ export default class SwapController {
       session_id: uuid,
       sender_addr: `${req.body.senderAddr}`,
       sender_amnt: `${req.body.amnt}`,
-      labels: {
-        hostname: logger.defaultMeta.hostname,
-        app: logger.defaultMeta.app,
-        env: logger.defaultMeta.env,
-        url: swapSigUrl,
-      }
+      url: swapSigUrl,
     });
 
     // validate payload variables
@@ -75,13 +70,8 @@ export default class SwapController {
         level: 'error',
         session_id: uuid,
         error: getErrorMessage(e),
-        labels: {
-          hostname: logger.defaultMeta.hostname,
-          app: logger.defaultMeta.app,
-          env: logger.defaultMeta.env,
-          url: swapSigUrl,
-          code: 400,
-        }
+        code: 400,
+        url: swapSigUrl,
       })
       res.status(400).json(getErrorMessage(e))
       return
@@ -125,13 +115,7 @@ export default class SwapController {
         message: "Couldn't find a smart contract utxo",
         level: 'error',
         code: 500,
-        labels: {
-          hostname: logger.defaultMeta.hostname,
-          app: logger.defaultMeta.app,
-          env: logger.defaultMeta.env,
-          url: swapSigUrl,
-          code: 500,
-        }
+        url: swapSigUrl,
       })
       res.status(500).json()
       return
@@ -254,13 +238,8 @@ export default class SwapController {
         session_id: uuid,
         sender_addr: `${req.body.senderAddr}`,
         error: getErrorMessage(e),
-        labels: {
-          hostname: logger.defaultMeta.hostname,
-          app: logger.defaultMeta.app,
-          env: logger.defaultMeta.env,
-          url: swapSigUrl,
-          code: 500,
-        }
+        code: 500,
+        url: swapSigUrl,
       });
       res.status(500).json("exception caught from getTxReducedB64Safe")
       return
@@ -288,13 +267,7 @@ export default class SwapController {
       session_id: uuid,
       tx_id: `${txId}`,
       code: 200,
-      labels: {
-        hostname: logger.defaultMeta.hostname,
-        app: logger.defaultMeta.app,
-        env: logger.defaultMeta.env,
-        url: swapSigUrl,
-        code: 200,
-      }
+      url: swapSigUrl,
     })
     res.status(200).json(jsonUnsignedTx)
   }
@@ -308,12 +281,7 @@ export default class SwapController {
       session_id: uuid,
       sender_addr: `${req.body.senderAddr}`,
       sender_amnt: `${req.body.amnt}`,
-      labels: {
-        hostname: logger.defaultMeta.hostname,
-        app: logger.defaultMeta.app,
-        env: logger.defaultMeta.env,
-        url: swapOwlUrl,
-      }
+      url: swapOwlUrl,
     });
 
     // validate payload variables
@@ -330,13 +298,8 @@ export default class SwapController {
         level: 'error',
         session_id: uuid,
         error: getErrorMessage(e),
-        labels: {
-          hostname: logger.defaultMeta.hostname,
-          app: logger.defaultMeta.app,
-          env: logger.defaultMeta.env,
-          url: swapOwlUrl,
-          code: 400,
-        }
+        code: 400,
+        url: swapOwlUrl,
       })
       res.status(400).json(getErrorMessage(e))
       return
@@ -381,13 +344,7 @@ export default class SwapController {
         message: "Couldn't find a smart contract utxo",
         level: 'error',
         code: 500,
-        labels: {
-          hostname: logger.defaultMeta.hostname,
-          app: logger.defaultMeta.app,
-          env: logger.defaultMeta.env,
-          url: swapOwlUrl,
-          code: 500,
-        }
+        url: swapOwlUrl,
       })
       res.status(500).json()
       return
@@ -512,13 +469,8 @@ export default class SwapController {
         session_id: uuid,
         sender_addr: `${req.body.senderAddr}`,
         error: getErrorMessage(e),
-        labels: {
-          hostname: logger.defaultMeta.hostname,
-          app: logger.defaultMeta.app,
-          env: logger.defaultMeta.env,
-          url: swapOwlUrl,
-          code: 500,
-        }
+        code: 500,
+        url: swapOwlUrl,
       });
       res.status(500).json("exception caught from getTxReducedB64Safe")
       return
@@ -546,13 +498,7 @@ export default class SwapController {
       session_id: uuid,
       tx_id: `${txId}`,
       code: 200,
-      labels: {
-        hostname: logger.defaultMeta.hostname,
-        app: logger.defaultMeta.app,
-        env: logger.defaultMeta.env,
-        url: swapOwlUrl,
-        code: 200,
-      }
+      url: swapOwlUrl,
     })
     res.status(200).json(jsonUnsignedTx)
   }
