@@ -69,17 +69,12 @@ export default class LeaderboardController {
     const result = await redisClient.get("leaderboard:all");
     if (result === null) {
       profiler.done({
+        error: "leaderboard data for all games is missing",
         message: "GetAllGames call failed",
         level: "error",
         request_id: `${uuid}`,
-        labels: {
-          hostname: logger.defaultMeta.hostname,
-          app: logger.defaultMeta.app,
-          env: logger.defaultMeta.env,
-          url: leaderboardAllUrl,
-          error: "leaderboard data for all games is missing",
-          code: 500
-        }
+        url: leaderboardAllUrl,
+        code: 500,
       })
       res.status(500).json("leaderboard data for all games is missing")
       return
@@ -88,13 +83,8 @@ export default class LeaderboardController {
     profiler.done({
       message: "GetAllGames call successful",
       request_id: `${uuid}`,
-      labels: {
-        hostname: logger.defaultMeta.hostname,
-        app: logger.defaultMeta.app,
-        env: logger.defaultMeta.env,
-        url: leaderboardAllUrl,
-        code: 200
-      }
+      url: leaderboardAllUrl,
+      code: 200,
     })
     res.status(200).json(JSON.parse(result))
   }
@@ -118,13 +108,8 @@ export default class LeaderboardController {
         logger.error({
           message: 'failed to write leaderboard:all:test to redis db',
           request_id: `${uuid}`,
-          labels: {
-            hostname: logger.defaultMeta.hostname,
-            app: logger.defaultMeta.app,
-            env: logger.defaultMeta.env,
-            url: leaderboardTestUrl,
-            code: 500
-          }
+          url: leaderboardTestUrl,
+          code: 500,
         })
         res.status(500).json("failed to write leaderboard:all:test to redis db")
         return
@@ -136,13 +121,8 @@ export default class LeaderboardController {
     profiler.done({
       message: "TestCall call successful",
       request_id: `${uuid}`,
-      labels: {
-        hostname: logger.defaultMeta.hostname,
-        app: logger.defaultMeta.app,
-        env: logger.defaultMeta.env,
-        url: leaderboardTestUrl,
-        code: 200
-      }
+      url: leaderboardTestUrl,
+      code: 200,
     })
     res.status(200).json(JSON.parse(result || '{}'))
   }

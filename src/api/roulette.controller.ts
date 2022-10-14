@@ -119,14 +119,9 @@ export default class RouletteController {
         session_id: uuid,
         sender_addr: `${req.body.senderAddr}`,
         error: getErrorMessage(e),
-        labels: {
-          hostname: logger.defaultMeta.hostname,
-          app: logger.defaultMeta.app,
-          env: logger.defaultMeta.env,
-          game: game,
-          url: betTxUrl,
-          code: 500,
-        }
+        game: game,
+        code: 500,
+        url: betTxUrl,
       });
       res.status(500).json("board value incorrect")
       return
@@ -140,14 +135,9 @@ export default class RouletteController {
         session_id: uuid,
         sender_addr: `${req.body.senderAddr}`,
         error: getErrorMessage(e),
-        labels: {
-          hostname: logger.defaultMeta.hostname,
-          app: logger.defaultMeta.app,
-          env: logger.defaultMeta.env,
-          game: game,
-          url: betTxUrl,
-          code: 500,
-        }
+        game: game,
+        code: 500,
+        url: betTxUrl,
       });
       res.status(500).json("utxos value incorrect")
       return
@@ -159,13 +149,8 @@ export default class RouletteController {
       sender_addr: `${req.body.senderAddr}`,
       sender_bets: boardRequest,
       utxos: utxos,
-      labels: {
-        hostname: logger.defaultMeta.hostname,
-        app: logger.defaultMeta.app,
-        env: logger.defaultMeta.env,
-        game: game,
-        url: betTxUrl,
-      }
+      game: game,
+      url: betTxUrl,
     });
 
     const recipient = req.body.senderAddr
@@ -380,14 +365,9 @@ export default class RouletteController {
         session_id: uuid,
         sender_addr: `${req.body.senderAddr}`,
         error: getErrorMessage(e),
-        labels: {
-          hostname: logger.defaultMeta.hostname,
-          app: logger.defaultMeta.app,
-          env: logger.defaultMeta.env,
-          game: game,
-          url: betTxUrl,
-          code: 500,
-        }
+        game: game,
+        code: 500,
+        url: betTxUrl,
       });
       res.status(500).json("exception caught from getTxReducedB64Safe")
       return
@@ -412,14 +392,9 @@ export default class RouletteController {
       message: 'unsigned roulette bet tx built successfully',
       session_id: uuid,
       tx_id: `${txId}`,
-      labels: {
-        hostname: logger.defaultMeta.hostname,
-        app: logger.defaultMeta.app,
-        env: logger.defaultMeta.env,
-        game: game,
-        url: betTxUrl,
-        code: 200,
-      }
+      game: game,
+      code: 200,
+      url: betTxUrl,
     })
     res.status(200).json({ sessionId: uuid, unsignedTx: jsonUnsignedTx })
 
@@ -440,14 +415,9 @@ export default class RouletteController {
         message: 'failed to parse RouletteGame',
         session_id: `${req.body.sessionId}`,
         error: getErrorMessage(e),
-        labels: {
-          hostname: logger.defaultMeta.hostname,
-          app: logger.defaultMeta.app,
-          env: logger.defaultMeta.env,
-          game: game,
-          url: calcWinnerUrl,
-          code: 500,
-        }
+        game: game,
+        code: 500,
+        url: calcWinnerUrl,
       })
       res.status(500).json("failed to parse RouletteGame")
       return
@@ -458,13 +428,8 @@ export default class RouletteController {
       session_id: `${req.body.sessionId}`,
       random_number: `${req.body.randomNumber}`,
       sender_bets: `${JSON.stringify(board.bets)}`,
-      labels: {
-        hostname: logger.defaultMeta.hostname,
-        app: logger.defaultMeta.app,
-        env: logger.defaultMeta.env,
-        game: game,
-        url: calcWinnerUrl,
-      }
+      game: game,
+      url: calcWinnerUrl,
     })
 
     const [wins, winner] = RouletteController.checkWinner(randNum, board.bets)
@@ -477,14 +442,9 @@ export default class RouletteController {
       session_id: `${req.body.sessionId}`,
       winning_bets: wins,
       win_amount: winAmount,
-      labels: {
-        hostname: logger.defaultMeta.hostname,
-        app: logger.defaultMeta.app,
-        env: logger.defaultMeta.env,
-        game: game,
-        url: calcWinnerUrl,
-        code: 200,
-      }
+      game: game,
+      code: 200,
+      url: calcWinnerUrl,
     })
     res.status(200).json({ winner: winner, amount: winAmount })
   }

@@ -32,13 +32,8 @@ export default class ErgoNodeController {
       session_id: `${req.body.sessionId}`,
       tx_id: `${req.body.tx.id}`,
       sender_addr: `${req.body.senderAddr}`,
-      labels: {
-        game: `${req.body.game}`,
-        hostname: logger.defaultMeta.hostname,
-        app: logger.defaultMeta.app,
-        env: logger.defaultMeta.env,
-        url: postTxUrl,
-      }
+      game: `${req.body.game}`,
+      url: postTxUrl,
     });
 
     //const resp = await postTx(NIGHTOWL_EXPLORER_API_ADDRESS+"transactions", req.body.tx)
@@ -62,13 +57,8 @@ export default class ErgoNodeController {
           message: 'POST request to ergo node was successful',
           session_id: `${req.body.sessionId}`,
           tx_id: `${txResp}`,
-          labels: {
-            code: 200,
-            hostname: logger.defaultMeta.hostname,
-            app: logger.defaultMeta.app,
-            env: logger.defaultMeta.env,
-            url: postTxUrl,
-          }
+          code: 200,
+          url: postTxUrl,
         })
         res.status(200).json(`${txResp}`)
         return
@@ -78,15 +68,10 @@ export default class ErgoNodeController {
           message: 'POST request to ergo node failed',
           session_id: `${req.body.sessionId}`,
           tx_id: `${req.body.tx.id}`,
-          resp: `${err}`,
+          error: `${err}`,
           level: "error",
-          labels: {
-            code: 500,
-            hostname: logger.defaultMeta.hostname,
-            app: logger.defaultMeta.app,
-            env: logger.defaultMeta.env,
-            url: postTxUrl,
-          }
+          code: 500,
+          url: postTxUrl,
         })
         res.status(500).json("node failed to send tx")
         return
