@@ -10,39 +10,43 @@ export default class ErgoNodeController {
   static async EncodeNum(req: Request, res: Response): Promise<void> {
     let encoded: string = ""
     let body: any
+    let bodyRaw: string = ""
     let isInt: boolean = false
 
     // validate request input
     try {
-      body = JSON.parse(JSON.stringify(req.body))
+      bodyRaw = JSON.stringify(req.body)
+      body = JSON.parse(bodyRaw)
       if (body.isInt) {
         isInt = JSON.parse(body.isInt);
       }
     } catch (e) {
-      logger.debug({
+      const err = getErrorMessage(e)
+      logger.error({
         code: 400,
         message: 'encode number invalid request',
-        error: `${getErrorMessage(e)}`,
-        body: `${JSON.stringify(req.body)}`,
+        error: `${err}`,
+        body: `${bodyRaw}`,
         url: encodeNumUrl,
       });
 
-      res.status(400).json({ result: -1, error: `${getErrorMessage(e)}` })
+      res.status(400).json({ result: -1, error: `${err}` })
       return
     }
 
     try {
       encoded = await encodeNum(req.body.number.toString(), isInt)
     } catch (e) {
-      logger.debug({
+      const err = getErrorMessage(e)
+      logger.error({
         code: 500,
         message: 'encode number failed',
-        error: `${getErrorMessage(e)}`,
-        body: `${JSON.stringify(req.body)}`,
+        error: `${err}`,
+        body: `${bodyRaw}`,
         url: encodeNumUrl,
       });
 
-      res.status(500).json({ result: -1, error: `${getErrorMessage(e)}` })
+      res.status(500).json({ result: -1, error: `${err}` })
       return
     }
 
@@ -61,35 +65,39 @@ export default class ErgoNodeController {
   static async EncodeHex(req: Request, res: Response): Promise<void> {
     let encoded: string = ""
     let body: any
+    let bodyRaw: string = ""
 
     // validate request input
     try {
-      body = JSON.parse(JSON.stringify(req.body))
+      bodyRaw = JSON.stringify(req.body)
+      body = JSON.parse(bodyRaw)
     } catch (e) {
-      logger.debug({
+      const err = getErrorMessage(e)
+      logger.error({
         code: 400,
         message: 'encode hex invalid request',
-        error: `${getErrorMessage(e)}`,
-        body: `${JSON.stringify(req.body)}`,
+        error: `${err}`,
+        body: `${bodyRaw}`,
         url: encodeNumUrl,
       });
 
-      res.status(400).json({ result: -1, error: `${getErrorMessage(e)}` })
+      res.status(400).json({ result: -1, error: `${err}` })
       return
     }
 
     try {
       encoded = await encodeHex(body.reg.toString())
     } catch (e) {
+      const err = getErrorMessage(e)
       logger.error({
         code: 500,
         message: 'encode hex failed',
-        error: `${getErrorMessage(e)}`,
-        body: `${JSON.stringify(req.body)}`,
+        error: `${err}`,
+        body: `${bodyRaw}`,
         url: encodeHexUrl,
       });
 
-      res.status(500).json({ result: -1, error: `${getErrorMessage(e)}` })
+      res.status(500).json({ result: -1, error: `${err}` })
       return
     }
 
