@@ -47,6 +47,7 @@ export default class ErgoNodeController {
     }
 
     logger.debug({
+      code: 200,
       message: 'encoded number',
       number: `${body.number}`,
       encoded: `${encoded}`,
@@ -93,6 +94,7 @@ export default class ErgoNodeController {
     }
 
     logger.debug({
+      code: 200,
       message: 'encoded hex',
       reg: `${body.reg}`,
       encoded: `${encoded}`,
