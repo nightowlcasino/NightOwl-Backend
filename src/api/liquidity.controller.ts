@@ -26,16 +26,19 @@ export default class LiquidityController {
       return
     }
 
+    const owlTokenAmount = Number(result)
+    const maxPayout = owlTokenAmount * .015
+
     profiler.done({
       message: "max-payout amount successully calculated",
       level: 'debug',
       request_id: `${uuid}`,
-      liquidity_amount: 10000000,
-      max_payout: 150000,
+      liquidity_amount: owlTokenAmount,
+      max_payout: maxPayout,
       url: lpAmountUrl,
       code: 200,
     })
-    res.status(200).json(JSON.parse(result))
+    res.status(200).json({ amount: `${maxPayout}` })
 
   }
 
@@ -45,12 +48,12 @@ export default class LiquidityController {
     profiler.done({
       message: 'max-payout amount successully calculated',
       level: 'debug',
-      liquidity_amount: 10000000,
-      max_payout: 150000,
+      liquidity_amount: 100000000,
+      max_payout: 1500000,
       url: lpAmountTestUrl,
       code: 200,
     })
-    res.status(200).json({ amount: 150000 })
+    res.status(200).json({ amount: 1500000 })
 
   }
 }

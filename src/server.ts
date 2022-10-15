@@ -12,6 +12,7 @@ import swap from "./api/swap.route"
 import roulette from "./api/roulette.route"
 import ergo from "./api/ergo.route"
 import path from "path"
+import { getErrorMessage } from './utils/error'
 import logger from "./logger"
 
 const app: Application = express();
@@ -33,20 +34,23 @@ const app: Application = express();
 })();
 
 // spawn max-payout worker thread
-//(async () => {
-//  const mpWorker = await spawn<MPWorker>(new Worker("./workers/max-payout"))
-//  try {
-//    mpWorker.values().subscribe((log: any) => {
-//      logger.info(`${log}`)
-//    })
-//    await mpWorker.startMaxPayout()
-//  } catch (error) {
-//    logger.error("max-payout worker thread errored:", error)
-//  } finally {
-//    mpWorker.finish()
-//    await Thread.terminate(mpWorker)
-//  }
-//})();
+(async () => {
+  const mpWorker = await spawn<MPWorker>(new Worker("./workers/max-payout"))
+  try {
+    mpWorker.values().subscribe((log: any) => {
+      logger.info(log)
+    })
+    await mpWorker.startMaxPayout()
+  } catch (err) {
+    logger.error({
+      message: "max payout worker thread errored",
+      error: getErrorMessage(err)
+    })
+  } finally {
+    mpWorker.finish()
+    await Thread.terminate(mpWorker)
+  }
+})();
 
 app.use(bodyparser.json());
 app.use(bodyparser.urlencoded({
